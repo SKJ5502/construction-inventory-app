@@ -7,167 +7,175 @@ from helpers.gsheet_utils import connect_sheet
 st.set_page_config(page_title="Construction Inventory", layout="wide")
 sheet = connect_sheet("Construction Inventory")
 
-TABS = [
-    "📦 Material Master", "📥 Inward", "📤 Outward", "📊 Stock Summary",
-    "🔁 Reconciliation", "🗑️ Damage/Loss", "🔁 Returns",
-    "📈 BOQ Mapping", "📅 Daily Closing", "👷 Vendor Management"
-]
-tabs = st.tabs(TABS)
+st.title("🏗️ Construction Site Inventory Management System")
 
-SERIES_LIST = [f"Series {i}" for i in range(1, 11)]
+# === Tabs at the TOP ===
+tabs = st.tabs([
+    "Vendor Management",
+    "Inward Register",
+    "Outward Register",
+    "Returns Register",
+    "Damage / Loss",
+    "Reconciliation",
+    "Daily Closing",
+    "Stock Summary",
+    "BOQ Mapping",
+    "Indent Register",
+    "Material Transfer",
+    "Scrap Register",
+    "Rate Contract",
+    "PO Register",
+    "Reports Dashboard",
+    "User Management"
+])
 
-# ----------------- 📦 Material Master -----------------
+# === Vendor Management ===
 with tabs[0]:
-    st.header("📦 Material Master")
-    with st.form("material_form"):
-        name = st.text_input("Material Name")
-        category = st.selectbox("Category", ["Cement", "Steel", "Tiles", "Paint", "Plumbing", "Electrical", "Aggregates", "Other"])
-        unit = st.text_input("Unit (e.g. Bags, Kg, Litres)")
-        hsn = st.text_input("HSN Code (optional)")
-        reorder = st.number_input("Reorder Level", min_value=0.0)
-        vendor = st.text_input("Preferred Vendor(s)")
-        submit = st.form_submit_button("Add Material")
-        if submit:
-            sheet.worksheet("Material Master").append_row([name, category, unit, hsn, reorder, vendor])
-            st.success("Material added.")
+    st.header("📋 Vendor Management")
+    vendor_df = pd.DataFrame(columns=[
+        "Vendor Name", "Contact Person", "Contact Number", "Email",
+        "Address", "GST Number", "Bank Details", "Approved Materials",
+        "Payment Terms", "Performance Rating", "Status", "Remarks"
+    ])
+    st.dataframe(vendor_df)
+    st.info("Add vendor form here...")
 
-# ----------------- 📥 Inward Entry -----------------
+# === Inward Register ===
 with tabs[1]:
-    st.header("📥 Material Inward Entry")
-    with st.form("inward_form"):
-        date = st.date_input("Date", datetime.date.today())
-        site = st.text_input("Site")
-        material = st.text_input("Material Name")
-        quantity = st.number_input("Quantity", min_value=0.0)
-        vendor = st.text_input("Vendor Name")
-        invoice = st.text_input("Invoice/DC No")
-        received_by = st.text_input("Received By")
-        remarks = st.text_area("Remarks")
-        file = st.file_uploader("Attach Invoice/Photo")
-        submit = st.form_submit_button("Submit Inward")
-        if submit:
-            sheet.worksheet("Inward").append_row([str(date), site, material, quantity, vendor, invoice, received_by, remarks])
-            st.success("Inward recorded.")
+    st.header("📥 Inward Register")
+    inward_df = pd.DataFrame(columns=[
+        "Date", "Vendor Name", "Material", "Unit", "Quantity",
+        "Rate", "Amount", "Expiry Date", "Photographic Record"
+    ])
+    st.dataframe(inward_df)
+    st.info("Add inward form here...")
 
-# ----------------- 📤 Outward Entry -----------------
+# === Outward Register ===
 with tabs[2]:
-    st.header("📤 Material Outward Entry")
-    with st.form("outward_form"):
-        date = st.date_input("Date", datetime.date.today())
-        site = st.text_input("Site")
-        material = st.text_input("Material Name")
-        quantity = st.number_input("Quantity", min_value=0.0)
-        issued_to = st.text_input("Issued To (Contractor or Section)")
-        purpose = st.text_input("Purpose/Work Area")
-        series = st.selectbox("Series", SERIES_LIST)
-        flat_no = st.text_input("Flat No (if applicable)")
-        issued_by = st.text_input("Issued By")
-        remarks = st.text_area("Remarks")
-        submit = st.form_submit_button("Submit Outward")
-        if submit:
-            sheet.worksheet("Outward").append_row([
-                str(date), site, material, quantity, issued_to, purpose, series, flat_no, issued_by, remarks
-            ])
-            st.success("Outward recorded.")
+    st.header("📤 Outward Register")
+    outward_df = pd.DataFrame(columns=[
+        "Date", "Material", "Unit", "Quantity", "Issued To",
+        "Work Area", "BOQ Item", "Approved By"
+    ])
+    st.dataframe(outward_df)
+    st.info("Add outward form here...")
 
-# ----------------- 📊 Stock Summary -----------------
+# === Returns Register ===
 with tabs[3]:
-    st.header("📊 Stock Summary")
-    st.info("This module will calculate live stock from inward - outward")
+    st.header("🔄 Returns Register")
+    returns_df = pd.DataFrame(columns=[
+        "Date", "Return Type", "Material", "Unit", "Quantity",
+        "Reason", "Approved By"
+    ])
+    st.dataframe(returns_df)
+    st.info("Add returns form here...")
 
-# ----------------- 🔁 Reconciliation -----------------
+# === Damage / Loss ===
 with tabs[4]:
-    st.header("🔁 Reconciliation")
-    with st.form("recon_form"):
-        date_range = st.date_input("Date Range", [datetime.date.today(), datetime.date.today()])
-        site = st.text_input("Site")
-        material = st.text_input("Material Name")
-        system_stock = st.number_input("System Stock", min_value=0.0)
-        physical_stock = st.number_input("Physical Stock", min_value=0.0)
-        discrepancy = system_stock - physical_stock
-        reason = st.text_area("Discrepancy Reason")
-        uploaded = st.file_uploader("Attach Photo/Count Sheet")
-        submit = st.form_submit_button("Submit Reconciliation")
-        if submit:
-            sheet.worksheet("Reconciliation").append_row([
-                str(date_range[0]), str(date_range[1]), site, material, system_stock,
-                physical_stock, discrepancy, reason, "Pending", ""
-            ])
-            st.success("Reconciliation submitted for approval.")
+    st.header("🚫 Damage / Loss Register")
+    damage_df = pd.DataFrame(columns=[
+        "Date", "Material", "Unit", "Quantity", "Type",
+        "Reason", "Photo", "Approved By"
+    ])
+    st.dataframe(damage_df)
+    st.info("Add damage/loss form here...")
 
-# ----------------- 🗑️ Damage/Loss -----------------
+# === Reconciliation ===
 with tabs[5]:
-    st.header("🗑️ Damaged or Lost Material")
-    with st.form("damage_form"):
-        date = st.date_input("Date", datetime.date.today())
-        material = st.text_input("Material Name")
-        quantity = st.number_input("Damaged Qty", min_value=0.0)
-        reason = st.text_input("Reason")
-        reported_by = st.text_input("Reported By")
-        photo = st.file_uploader("Attach Photo")
-        submit = st.form_submit_button("Log Damage")
-        if submit:
-            sheet.worksheet("Damage Log").append_row([
-                str(date), material, quantity, reason, reported_by
-            ])
-            st.success("Damage recorded and stock updated.")
+    st.header("🧾 Reconciliation")
+    rec_df = pd.DataFrame(columns=[
+        "Date", "Material", "Unit", "Book Stock", "Physical Stock",
+        "Variance", "Reason", "Approved By"
+    ])
+    st.dataframe(rec_df)
+    st.info("Add reconciliation form here...")
 
-# ----------------- 🔁 Returns -----------------
+# === Daily Closing ===
 with tabs[6]:
-    st.header("🔁 Returns from Contractor")
-    with st.form("returns_form"):
-        date = st.date_input("Date", datetime.date.today())
-        material = st.text_input("Material Name")
-        quantity = st.number_input("Returned Qty", min_value=0.0)
-        returned_by = st.text_input("Returned By")
-        reason = st.text_input("Reason")
-        submit = st.form_submit_button("Record Return")
-        if submit:
-            sheet.worksheet("Returns").append_row([
-                str(date), material, quantity, returned_by, reason
-            ])
-            st.success("Return recorded and stock updated.")
+    st.header("📅 Daily Closing")
+    closing_df = pd.DataFrame(columns=[
+        "Date", "Material", "Unit", "Opening Stock", "Inward",
+        "Outward", "Returns", "Damage/Loss", "Adjustments",
+        "Closing Stock (Book)", "Physical Stock", "Variance"
+    ])
+    st.dataframe(closing_df)
+    st.info("Daily closing summary here...")
 
-# ----------------- 📈 BOQ Mapping -----------------
+# === Stock Summary ===
 with tabs[7]:
-    st.header("📈 BOQ Material Mapping")
-    with st.form("boq_form"):
-        series = st.selectbox("Select Series", SERIES_LIST)
-        material = st.text_input("Material")
-        planned_qty = st.number_input("Planned Quantity", min_value=0.0)
-        submit = st.form_submit_button("Save BOQ")
-        if submit:
-            sheet.worksheet("BOQ Mapping").append_row([series, material, planned_qty])
-            st.success("BOQ mapped for selected series.")
+    st.header("📊 Stock Summary")
+    stock_df = pd.DataFrame(columns=[
+        "Material", "Unit", "Opening", "Inward", "Outward",
+        "Returns", "Damage", "Current Stock", "Avg Rate", "Lowest Vendor"
+    ])
+    st.dataframe(stock_df)
+    st.info("Live stock summary and charts here...")
 
-# ----------------- 📅 Daily Closing -----------------
+# === BOQ Mapping ===
 with tabs[8]:
-    st.header("📅 Daily Closing Stock")
-    with st.form("closing_form"):
-        date = st.date_input("Date", datetime.date.today())
-        site = st.text_input("Site")
-        material = st.text_input("Material")
-        closing_qty = st.number_input("Closing Qty", min_value=0.0)
-        submitted_by = st.text_input("Submitted By")
-        submit = st.form_submit_button("Submit Closing")
-        if submit:
-            sheet.worksheet("Daily Closing").append_row([
-                str(date), site, material, closing_qty, submitted_by
-            ])
-            st.success("Daily closing recorded.")
+    st.header("📐 BOQ Mapping")
+    boq_df = pd.DataFrame(columns=[
+        "Work Item", "Material", "Unit", "BOQ Qty",
+        "Actual Issued", "Variance", "% Variance"
+    ])
+    st.dataframe(boq_df)
+    st.info("Planned vs Actual mapping here...")
 
-# ----------------- 👷 Vendor Management -----------------
+# === Indent Register ===
 with tabs[9]:
-    st.header("👷 Vendor Master")
-    with st.form("vendor_form"):
-        name = st.text_input("Vendor Name")
-        contact = st.text_input("Contact Number")
-        gst = st.text_input("GSTIN")
-        materials = st.text_input("Materials Supplied")
-        rating = st.slider("Quality Rating", 1, 5, 3)
-        submit = st.form_submit_button("Add Vendor")
-        if submit:
-            sheet.worksheet("Vendor Master").append_row([
-                name, contact, gst, materials, rating
-            ])
-            st.success("Vendor added successfully.")
+    st.header("📝 Indent Register")
+    indent_df = pd.DataFrame(columns=[
+        "Date", "Indent Number", "Requested By", "Material",
+        "Unit", "Qty Requested", "Qty Approved", "Approved By"
+    ])
+    st.dataframe(indent_df)
+    st.info("Indent request/approval form here...")
+
+# === Material Transfer ===
+with tabs[10]:
+    st.header("🔁 Material Transfer")
+    transfer_df = pd.DataFrame(columns=[
+        "Date", "From Site", "To Site", "Material",
+        "Unit", "Quantity", "Approved By"
+    ])
+    st.dataframe(transfer_df)
+    st.info("Material transfer register here...")
+
+# === Scrap Register ===
+with tabs[11]:
+    st.header("♻️ Scrap Register")
+    scrap_df = pd.DataFrame(columns=[
+        "Date", "Material", "Unit", "Qty Scrap", "Disposal/Sold To",
+        "Scrap Value", "Approved By"
+    ])
+    st.dataframe(scrap_df)
+    st.info("Scrap tracking here...")
+
+# === Rate Contract ===
+with tabs[12]:
+    st.header("💰 Rate Contract")
+    rate_df = pd.DataFrame(columns=[
+        "Vendor", "Material", "Unit", "Rate", "Valid From", "Valid To"
+    ])
+    st.dataframe(rate_df)
+    st.info("Rate contracts details here...")
+
+# === PO Register ===
+with tabs[13]:
+    st.header("📑 PO Register")
+    po_df = pd.DataFrame(columns=[
+        "PO Number", "Vendor", "Material", "Unit",
+        "PO Qty", "Received Qty", "Balance Qty"
+    ])
+    st.dataframe(po_df)
+    st.info("Purchase order register here...")
+
+# === Reports Dashboard ===
+with tabs[14]:
+    st.header("📈 Reports & Dashboard")
+    st.info("Charts, KPIs, and export options here...")
+
+# === User Management ===
+with tabs[15]:
+    st.header("👤 User Management")
+    st.info("Roles, access rights, audit log here...")
