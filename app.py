@@ -4,6 +4,7 @@ import datetime
 import math
 from helpers.gsheet_utils import connect_sheet
 import os
+from datetime import datetime
 
 st.set_page_config(page_title="Construction Inventory", layout="wide")
 sheet = connect_sheet("Construction Inventory")
@@ -136,74 +137,79 @@ with tabs[0]:
         mime="text/csv"
     )
 
-# === Paths ===
-FOLDER_PATH = 'data'
-if not os.path.exists(FOLDER_PATH):
-    os.makedirs(FOLDER_PATH)
+     # === Paths ===
+    FOLDER_PATH = 'data'
+    if not os.path.exists(FOLDER_PATH):
+        os.makedirs(FOLDER_PATH)
 
-vendor_file = os.path.join(FOLDER_PATH, 'vendors.csv')
-inward_file = os.path.join(FOLDER_PATH, 'inward.csv')
+    vendor_file = os.path.join(FOLDER_PATH, 'vendors.csv')
+    inward_file = os.path.join(FOLDER_PATH, 'inward.csv')
 
-# === Load Vendor Master ===
-if os.path.exists(vendor_file):
-    vendor_df = pd.read_csv(vendor_file)
-    approved_vendors = vendor_df[vendor_df['Status'] == 'Active']["Vendor Name"].unique().tolist()
-else:
-    approved_vendors = []
+    # === Load Vendor Master ===
+    if os.path.exists(vendor_file):
+        vendor_df = pd.read_csv(vendor_file)
+        approved_vendors = vendor_df[vendor_df['Status'] == 'Active']["Vendor Name"].unique().tolist()
+    else:
+        approved_vendors = []
 
-# === Prepare Inward File ===
-if not os.path.exists(inward_file):
-    inward_df = pd.DataFrame(columns=[
-        "Date & Time", "Supplier/Vendor Name", "Delivery Challan/Invoice Number",
-        "Purchase Order Number", "Material Name", "Unit of Measurement",
-        "Quantity Received", "Condition of Material", "Expiry Date",
-        "Vehicle Details", "Received By", "Quality Check Status",
-        "Photographic Record", "Storage Location", "Remarks/Notes", "Authorization"
-    ])
-    inward_df.to_csv(inward_file, index=False)
-else:
-    inward_df = pd.read_csv(inward_file)
+    # === Prepare Inward File ===
+    if not os.path.exists(inward_file):
+        inward_df = pd.DataFrame(columns=[
+            "Date & Time", "Supplier/Vendor Name", "Delivery Challan/Invoice Number",
+            "Purchase Order Number", "Material Name", "Unit of Measurement",
+            "Quantity Received", "Condition of Material", "Expiry Date",
+            "Vehicle Details", "Received By", "Quality Check Status",
+            "Photographic Record", "Storage Location", "Remarks/Notes", "Authorization"
+        ])
+        inward_df.to_csv(inward_file, index=False)
+    else:
+        inward_df = pd.read_csv(inward_file)
 
-# === Inward Register ===
-tabs = st.tabs(["Vendor Management", "Inward Register"])
-with tabs[1]:
-    st.header("📥 Inward Register")
+    # === Create Tabs ===
+    tabs = st.tabs(["Vendor Management", "Inward Register"])
 
-    st.subheader("➕ New Inward Entry")
+    # === Inward Register ===
+    with tabs[1]:
+        st.header("📥 Inward Register")
 
-    with st.form("inward_form"):
-        col1, col2 = st.columns(2)
+        st.subheader("➕ New Inward Entry")
 
-        with col1:
-            date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            supplier = st.selectbox("Supplier/Vendor Name", approved_vendors)
-            dc_number = st.text_input("Delivery Challan/Invoice Number")
-            po_number = st.text_input("Purchase Order Number")
-            material_name = st.selectbox(
-                "Material Name",
-                ["Cement", "Sand", "Steel", "Tiles", "Paint"]
-            )
-            unit = st.selectbox(
-                "Unit of Measurement",
-                ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"]
-            )
-            quantity = st.number_input("Quantity Received", min_value=0.0, step=0.1)
-            condition = st.text_input("Condition of Material")
-            expiry_date = st.date_input("Expiry Date (optional)", value=None)
+        # ✅ THIS must be inside the `with st.form` block
+        with st.form("inward_form"):
+            col1, col2 = st.columns(2)
 
-        with col2:
-            vehicle_details = st.text_input("Vehicle Details (Truck Number & Driver Name)")
-            received_by = st.text_input("Received By")
-            qc_status = st.text_input("Quality Check Status")
-            photo = st.file_uploader("Photographic Record", type=["jpg", "png", "jpeg"])
-            storage_location = st.text_input("Storage Location")
-            remarks = st.text_area("Remarks / Notes")
-            authorization = st.text_input("Authorization (Name)")
+            with col1:
+                date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                supplier = st.selectbox("Supplier/Vendor Name", approved_vendors)
+                dc_number = st.text_input("Delivery Challan/Invoice Number")
+                po_number = st.text_input("Purchase Order Number")
+                material_name = st.selectbox(
+                    "Material Name",
+                    ["Cement", "Sand", "Steel", "Tiles", "Paint"]
+                )
+                unit = st.selectbox(
+                    "Unit of Measurement",
+                    ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"]
+                )
+                quantity = st.number_input("Quantity Received", min_value=0.0, step=0.1)
+                condition = st.text_input("Condition of Material")
+                expiry_date = st.date_input("Expiry Date (optional)")
 
-        submit = st.form_submit_button("Save Inward Entry")
+            with col2:
+                vehicle_details = st.text_input("Vehicle Details (Truck Number & Driver Name)")
+                received_by = st.text_input("Received By")
+                qc_status = st.text_input("Quality Check Status")
+                photo = st.file_uploader("Photographic Record", type=["jpg", "png", "jpeg"])
+                storage_location = st.text_input("Storage Location")
+                remarks = st.text_area("Remarks / Notes")
+                authorization = st.text_input("Authorization (Name)")
 
+            # ✅ THIS must be INSIDE the form
+            submit = st.form_submit_button("Save Inward Entry")
+
+        # ✅ Outside the form block → check if submitted
         if submit:
-            photo_url = ""
+           photo_url = ""
             if photo:
                 photo_save_path = os.path.join(FOLDER_PATH, f"inward_{photo.name}")
                 with open(photo_save_path, "wb") as f:
@@ -233,15 +239,15 @@ with tabs[1]:
             inward_df.to_csv(inward_file, index=False)
             st.success("Inward entry saved successfully!")
 
-    st.subheader("📑 Inward Register Data")
-    st.dataframe(inward_df)
+        st.subheader("📑 Inward Register Data")
+        st.dataframe(inward_df)
 
-    st.download_button(
-        "⬇️ Download Inward Register",
-        inward_df.to_csv(index=False),
-        file_name="inward_register.csv",
-        mime="text/csv"
-    )
+        st.download_button(
+            "⬇️ Download Inward Register",
+            inward_df.to_csv(index=False),
+            file_name="inward_register.csv",
+            mime="text/csv"
+        )
 
 # === Outward Register ===
 with tabs[2]:
