@@ -174,7 +174,6 @@ with tabs[0]:
 
         st.subheader("➕ New Inward Entry")
 
-        # ✅ THIS must be inside the `with st.form` block
         with st.form("inward_form"):
             col1, col2 = st.columns(2)
 
@@ -207,10 +206,10 @@ with tabs[0]:
             # ✅ THIS must be INSIDE the form
             submit = st.form_submit_button("Save Inward Entry")
 
-        # ✅ Outside the form block → check if submitted
+        # ✅ This is outside the form
         if submit:
            photo_url = ""
-            if photo:
+           if photo:
                 photo_save_path = os.path.join(FOLDER_PATH, f"inward_{photo.name}")
                 with open(photo_save_path, "wb") as f:
                     f.write(photo.read())
