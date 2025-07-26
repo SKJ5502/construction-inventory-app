@@ -6,9 +6,17 @@ from helpers.gsheet_utils import connect_sheet
 import os
 from datetime import datetime
 
-import streamlit as st
-import pandas as pd
-import os
+# Utility: Load CSV safely
+def load_data(file_path):
+    if os.path.exists(file_path):
+        try:
+            return pd.read_csv(file_path)
+        except Exception as e:
+            st.error(f"Error reading {file_path}: {e}")
+            return pd.DataFrame()
+    else:
+        return pd.DataFrame()
+
 
 # Create data folder if not exists
 os.makedirs("data", exist_ok=True)
