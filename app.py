@@ -333,7 +333,7 @@ with tabs[3]:
             try:
                 worksheet.append_row(list(new_return.values()))
                 st.success("✅ Return entry recorded!")
-                st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"❌ Failed to record entry: {e}")
 
