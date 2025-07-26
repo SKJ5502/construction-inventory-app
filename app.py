@@ -26,7 +26,8 @@ tabs = st.tabs([
     "Stock Summary",
     "BOQ Mapping",
     "Indent Register",
-    "Material Transfer Register"
+    "Material Transfer Register",
+    "Scrap Register"
 ])
 
 # === Vendor Management Tab ===
@@ -687,6 +688,58 @@ with tabs[10]:  # 11th tab (index starts at 0)
                 transfer_df.to_csv(transfer_file, index=False)
                 st.success(f"Transfer {transfer_id} recorded successfully.")
                 st.experimental_rerun()
+
+# === Tab 12: Scrap Register ===
+with tabs[11]:  # 12th tab (index starts at 0)
+    st.header("♻️ Scrap Register")
+
+    scrap_file = "data/scrap_register.csv"
+
+    # Load or initialize scrap register
+    if os.path.exists(scrap_file):
+        scrap_df = pd.read_csv(scrap_file)
+    else:
+        scrap_df = pd.DataFrame(columns=[
+            "Scrap ID", "Date & Time", "Material Name", "Unit", "Quantity",
+            "Source Location", "Reason for Scrap", "Approved By",
+            "Disposal Method", "Remarks"
+        ])
+
+    st.dataframe(scrap_df)
+
+    with st.expander("➕ Log Scrap Material"):
+        with st.form("scrap_form"):
+            scrap_id = f"SC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            material = st.selectbox("Material Name", material_options)
+            unit = st.selectbox("Unit", unit_options)
+            quantity = st.number_input("Quantity", min_value=0.0, step=1.0)
+            source_location = st.text_input("Source Location")
+            reason = st.text_area("Reason for Scrap")
+            approved_by = st.text_input("Approved By")
+            disposal_method = st.text_input("Disposal Method (Sold / Stored / Reused / Disposed)")
+            remarks = st.text_area("Remarks")
+
+            submitted = st.form_submit_button("Submit Scrap Entry")
+
+            if submitted:
+                new_scrap = {
+                    "Scrap ID": scrap_id,
+                    "Date & Time": date_time,
+                    "Material Name": material,
+                    "Unit": unit,
+                    "Quantity": quantity,
+                    "Source Location": source_location,
+                    "Reason for Scrap": reason,
+                    "Approved By": approved_by,
+                    "Disposal Method": disposal_method,
+                    "Remarks": remarks
+                }
+                scrap_df = pd.concat([scrap_df, pd.DataFrame([new_scrap])], ignore_index=True)
+                scrap_df.to_csv(scrap_file, index=False)
+                st.success(f"Scrap entry {scrap_id} recorded successfully.")
+                st.experimental_rerun()
+
 
 
 
