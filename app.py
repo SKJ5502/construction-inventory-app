@@ -17,7 +17,8 @@ DATA_PATH = "data/vendors.csv"
 # === Tabs at the TOP ===
 tabs = st.tabs([
     "Vendor Management",
-    "Inward Register"
+    "Inward Register",
+    "Outward Register"
 ])
 
 # === Vendor Management Tab ===
@@ -190,4 +191,68 @@ with tabs[1]:
 
     # Export button
     st.download_button("⬇️ Download Inward Register", inward_df.to_csv(index=False), "inward_register.csv", "text/csv")
+
+# === Outward Register ===
+with tabs[2]:
+    st.header("📤 Outward Register")
+
+    OUTWARD_CSV = "data/outward_register.csv"
+    os.makedirs("data", exist_ok=True)
+
+    if not os.path.exists(OUTWARD_CSV):
+        outward_df = pd.DataFrame(columns=[
+            "Date", "Material Name", "Quantity Issued", "Unit", "Issued To",
+            "Purpose", "Authorized By", "Remarks", "Photographic Record"
+        ])
+        outward_df.to_csv(OUTWARD_CSV, index=False)
+
+    outward_df = pd.read_csv(OUTWARD_CSV)
+
+    with st.form("outward_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", value=datetime.today())
+            material_name = st.selectbox("Material Name", [
+                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
+            quantity = st.number_input("Quantity Issued", min_value=0.0)
+            unit = st.selectbox("Unit", [
+                "Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+            issued_to = st.text_input("Issued To")
+
+        with col2:
+            purpose = st.text_input("Purpose of Issue")
+            authorized_by = st.text_input("Authorized By")
+            remarks = st.text_area("Remarks")
+            photo = st.file_uploader("Upload Photo (Optional)", type=["jpg", "jpeg", "png"])
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            photo_path = ""
+            if photo:
+                photo_path = os.path.join("data", photo.name)
+                with open(photo_path, "wb") as f:
+                    f.write(photo.read())
+
+            new_entry = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material Name": material_name,
+                "Quantity Issued": quantity,
+                "Unit": unit,
+                "Issued To": issued_to,
+                "Purpose": purpose,
+                "Authorized By": authorized_by,
+                "Remarks": remarks,
+                "Photographic Record": photo_path
+            }
+
+            outward_df = pd.concat([outward_df, pd.DataFrame([new_entry])], ignore_index=True)
+            outward_df.to_csv(OUTWARD_CSV, index=False)
+            st.success("Outward entry recorded!")
+
+    st.subheader("📄 Outward Register Entries")
+    st.dataframe(outward_df)
+    st.download_button("⬇️ Download Outward Register", outward_df.to_csv(index=False), "outward_register.csv", "text/csv")
+
 
