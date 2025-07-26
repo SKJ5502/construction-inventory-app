@@ -862,62 +862,66 @@ with tabs[13]:
             po_df.to_csv(po_file, index=False)
             st.success("PO entry saved successfully.")
 
+# === Reports Dashboard ===
 with tabs[14]:
-    st.header("📈 Reports Dashboard")
+    st.header("📊 Reports Dashboard")
 
-    # Load Data
-    inward_file = os.path.join(DATA_PATH, "inward_register.csv")
-    if os.path.exists(inward_file):
-        inward_df = pd.read_csv(inward_file)
-    else:
-        inward_df = pd.DataFrame(columns=[
-            "Date", "Vendor Name", "Material", "Unit", "Quantity",
-            "Rate", "Amount", "Expiry Date", "Photographic Record",
-            "Delivery Challan", "PO Number", "Condition", "Vehicle Details",
-            "Received By", "Quality Check Status", "Storage Location",
-            "Remarks", "Authorization"
-        ])
+    # Load data
+    inward_df = load_data(INWARD_CSV)
+    outward_df = load_data(OUTWARD_CSV)
 
-    # Load Vendor Data
-    vendor_file = os.path.join(DATA_PATH, "vendor.csv")
-    if os.path.exists(vendor_file):
-        vendor_df = pd.read_csv(vendor_file)
-    else:
-        vendor_df = pd.DataFrame(columns=["Vendor Name", "Contact Person", "Phone", "Email", "Address", "GSTIN"])
-
-    # --- KPI Metrics ---
-    st.subheader("🔢 Key Metrics")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total Vendors", len(vendor_df))
-    with col2:
-        st.metric("Total Materials Received", inward_df["Quantity"].sum() if not inward_df.empty else 0)
-    with col3:
-        st.metric("Total Value", f"₹ {inward_df['Amount'].sum():,.2f}" if not inward_df.empty else "₹ 0")
-
-    # --- Material-wise Summary ---
-    st.subheader("📦 Material Summary")
-    if not inward_df.empty and "Material" in inward_df.columns:
-        summary_df = inward_df.groupby("Material").agg({
-            "Quantity": "sum",
+    st.subheader("1. Daily Inward and Outward Summary")
+    if not inward_df.empty:
+        inward_df["Date"] = pd.to_datetime(inward_df["Date"])
+        inward_summary = inward_df.groupby([inward_df["Date"].dt.date, "Material"]).agg({
+            "Quantity Received": "sum",
             "Amount": "sum"
         }).reset_index()
-        summary_df.columns = ["Material", "Total Quantity", "Total Amount"]
-        st.dataframe(summary_df.sort_values("Total Quantity", ascending=False), use_container_width=True)
+        st.write("**Inward Summary:**")
+        st.dataframe(inward_summary)
     else:
-        st.warning("No inward data available to display summary.")
+        st.info("No inward data available.")
 
-    # --- Vendor-wise Summary ---
-    st.subheader("🏗 Vendor Supply Summary")
-    if not inward_df.empty and "Vendor Name" in inward_df.columns:
-        vendor_summary_df = inward_df.groupby("Vendor Name").agg({
-            "Quantity": "sum",
+    if not outward_df.empty:
+        outward_df["Date"] = pd.to_datetime(outward_df["Date"])
+        outward_summary = outward_df.groupby([outward_df["Date"].dt.date, "Material"]).agg({
+            "Quantity Issued": "sum",
             "Amount": "sum"
         }).reset_index()
-        vendor_summary_df.columns = ["Vendor", "Total Quantity Supplied", "Total Amount"]
-        st.dataframe(vendor_summary_df.sort_values("Total Amount", ascending=False), use_container_width=True)
+        st.write("**Outward Summary:**")
+        st.dataframe(outward_summary)
     else:
-        st.info("No data available for vendor summary.")
+        st.info("No outward data available.")
+
+    st.subheader("2. Average Rate per Unit of Material")
+    if not inward_df.empty:
+        inward_df["Rate"] = pd.to_numeric(inward_df["Rate"], errors="coerce")
+        average_rate = inward_df.groupby("Material")["Rate"].mean().reset_index()
+        average_rate.rename(columns={"Rate": "Average Rate"}, inplace=True)
+        st.dataframe(average_rate)
+
+    st.subheader("3. Vendor with Lowest Rate per Material")
+    if not inward_df.empty:
+        min_rate_df = inward_df.groupby("Material")["Rate"].min().reset_index()
+        lowest_vendor = inward_df.merge(min_rate_df, on=["Material", "Rate"])[["Material", "Vendor Name", "Rate"]].drop_duplicates()
+        lowest_vendor.rename(columns={"Rate": "Lowest Rate"}, inplace=True)
+        st.dataframe(lowest_vendor)
+
+    st.subheader("4. Expired and Expiring Soon Materials")
+    today = pd.to_datetime(datetime.today().date())
+    if "Expiry Date" in inward_df.columns:
+        inward_df["Expiry Date"] = pd.to_datetime(inward_df["Expiry Date"], errors="coerce")
+        expired = inward_df[inward_df["Expiry Date"] < today]
+        expiring_soon = inward_df[(inward_df["Expiry Date"] >= today) & (inward_df["Expiry Date"] <= today + pd.Timedelta(days=7))]
+
+        st.write(f"**Expired Materials:** {len(expired)}")
+        st.dataframe(expired[["Date", "Material", "Expiry Date", "Quantity Received"]])
+
+        st.write(f"**Expiring Soon Materials (Next 7 Days):** {len(expiring_soon)}")
+        st.dataframe(expiring_soon[["Date", "Material", "Expiry Date", "Quantity Received"]])
+    else:
+        st.info("Expiry Date column not found in inward data.")
+
 
 
 
