@@ -69,39 +69,38 @@ tabs = st.tabs([
 with tabs[0]:
     st.header("📦 Vendor Management")
 
-vendor_ws, vendor_df = load_vendor_data()
+    vendor_ws, vendor_df = load_vendor_data()
 
-# Create columns for input
-with st.form("vendor_form"):
-    col1, col2 = st.columns(2)
-    with col1:
-        name = st.text_input("Vendor Name")
-        material = st.text_input("Material Supplied")
-        contact = st.text_input("Contact Person")
-    with col2:
-        phone = st.text_input("Phone Number")
-        email = st.text_input("Email")
-        address = st.text_area("Address")
+    # === Vendor Input Form ===
+    with st.form("vendor_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            name = st.text_input("Vendor Name")
+            material = st.text_input("Material Supplied")
+            contact = st.text_input("Contact Person")
+        with col2:
+            phone = st.text_input("Phone Number")
+            email = st.text_input("Email")
+            address = st.text_area("Address")
 
-    submitted = st.form_submit_button("Add Vendor")
+        submitted = st.form_submit_button("Add Vendor")
 
-    if submitted:
-        if name.strip() == "":
-            st.warning("Vendor Name is required.")
-        else:
-            new_vendor = {
-                "Vendor Name": name.strip(),
-                "Material Supplied": material,
-                "Contact Person": contact,
-                "Phone": phone,
-                "Email": email,
-                "Address": address
-            }
+        if submitted:
+            if name.strip() == "":
+                st.warning("Vendor Name is required.")
+            else:
+                new_vendor = {
+                    "Vendor Name": name.strip(),
+                    "Material Supplied": material,
+                    "Contact Person": contact,
+                    "Phone": phone,
+                    "Email": email,
+                    "Address": address
+                }
 
-            # Append to DataFrame
-            vendor_df = pd.concat([vendor_df, pd.DataFrame([new_vendor])], ignore_index=True)
-            save_vendor_data(vendor_ws, vendor_df)
-            st.success("Vendor added successfully!")
+                vendor_df = pd.concat([vendor_df, pd.DataFrame([new_vendor])], ignore_index=True)
+                save_vendor_data(vendor_ws, vendor_df)
+                st.success("Vendor added successfully!")
 
     # === Display Vendor Table ===
     st.subheader("📄 Existing Vendors")
@@ -109,14 +108,17 @@ with st.form("vendor_form"):
         st.dataframe(vendor_df)
 
         with st.expander("🗑️ Delete Vendor"):
-            delete_name = st.selectbox("Select Vendor to Delete", vendor_df["Vendor Name"].unique())
-            if st.button("Delete Vendor"):
-                vendor_df = vendor_df[vendor_df["Vendor Name"] != delete_name]
-                save_vendor_data(vendor_ws, vendor_df)
-                st.success(f"Vendor '{delete_name}' deleted.")
+            with st.form("delete_vendor_form"):
+                delete_name = st.selectbox("Select Vendor to Delete", vendor_df["Vendor Name"].unique())
+                delete_submitted = st.form_submit_button("Delete Vendor")
 
+                if delete_submitted:
+                    vendor_df = vendor_df[vendor_df["Vendor Name"] != delete_name]
+                    save_vendor_data(vendor_ws, vendor_df)
+                    st.success(f"Vendor '{delete_name}' deleted.")
     else:
         st.info("No vendor data available.")
+
 
 # === Inward Register ===
 with tabs[1]:
