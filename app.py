@@ -47,7 +47,8 @@ tabs = st.tabs([
     "Indent Register",
     "Material Transfer Register",
     "Scrap Register",
-    "Rate Contract Register"
+    "Rate Contract Register",
+    "PO Register"
 ])
 
 # === Vendor Management Tab ===
@@ -805,6 +806,61 @@ with tabs[12]:  # 13th tab (index starts at 0)
                 contract_df.to_csv(contract_file, index=False)
                 st.success(f"Rate contract {contract_id} added successfully.")
                 st.experimental_rerun()
+
+
+with tabs[13]:
+    st.header("📑 PO Register")
+
+    # Load existing data
+    po_file = os.path.join(DATA_PATH, "po_register.csv")
+    if os.path.exists(po_file):
+        po_df = pd.read_csv(po_file)
+    else:
+        po_df = pd.DataFrame(columns=[
+            "PO Number", "Date", "Vendor Name", "Material",
+            "Quantity", "Unit", "Rate", "Amount", "Delivery Date",
+            "Status", "Remarks"
+        ])
+
+    # === Display Existing Records ===
+    st.subheader("Existing Purchase Orders")
+    st.dataframe(po_df, use_container_width=True)
+
+    st.subheader("➕ Add New PO Entry")
+    with st.form("add_po_form"):
+        po_number = st.text_input("PO Number")
+        po_date = st.date_input("PO Date", value=datetime.now())
+        vendor_name = st.selectbox("Vendor Name", vendor_df["Vendor Name"].unique() if not vendor_df.empty else [])
+        material = st.text_input("Material")
+        quantity = st.number_input("Quantity", min_value=0.0, step=0.1)
+        unit = st.selectbox("Unit of Measurement", ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+        rate = st.number_input("Rate", min_value=0.0, step=0.1)
+        amount = quantity * rate
+        st.text(f"Amount: ₹ {amount:.2f}")
+        delivery_date = st.date_input("Expected Delivery Date")
+        status = st.selectbox("Status", ["Open", "Closed"])
+        remarks = st.text_area("Remarks")
+
+        submit_po = st.form_submit_button("Save PO Entry")
+        if submit_po:
+            new_po = {
+                "PO Number": po_number,
+                "Date": po_date.strftime("%Y-%m-%d"),
+                "Vendor Name": vendor_name,
+                "Material": material,
+                "Quantity": quantity,
+                "Unit": unit,
+                "Rate": rate,
+                "Amount": amount,
+                "Delivery Date": delivery_date.strftime("%Y-%m-%d"),
+                "Status": status,
+                "Remarks": remarks
+            }
+
+            po_df = pd.concat([po_df, pd.DataFrame([new_po])], ignore_index=True)
+            po_df.to_csv(po_file, index=False)
+            st.success("PO entry saved successfully.")
+
 
 
 
