@@ -57,6 +57,8 @@ with tabs[0]:
         sheet = client.open(SHEET_NAME)
         vendor_ws = sheet.worksheet("Vendor Master")
         vendor_df = pd.DataFrame(vendor_ws.get_all_records())
+        st.write("Vendor Master Columns:", vendor_df.columns.tolist())
+
     except Exception as e:
         st.error(f"Error loading Vendor Master sheet: {e}")
         st.stop()
