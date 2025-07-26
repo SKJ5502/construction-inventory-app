@@ -489,56 +489,57 @@ with tabs[6]:
     st.download_button("⬇️ Download Daily Closing CSV", closing_df.to_csv(index=False), "daily_closing.csv", "text/csv")
 
 # === Tab 8: Stock Summary ===
-with tabs[7]:  # Index 7 corresponds to 8th tab
+with tabs[7]:  # 8th tab (index starts at 0)
     st.header("📦 Stock Summary")
 
-    # Load all data files
-    def load_csv_data(file_path):
+    # Helper to load CSV safely
+    def load_csv_data(path):
         try:
-            return pd.read_csv(file_path)
+            df = pd.read_csv(path)
+            if "Material Name" not in df.columns or "Quantity" not in df.columns:
+                return pd.DataFrame(columns=["Material Name", "Quantity"])
+            return df
         except FileNotFoundError:
-            return pd.DataFrame()
+            return pd.DataFrame(columns=["Material Name", "Quantity"])
 
     inward_df = load_csv_data("data/inward.csv")
     outward_df = load_csv_data("data/outward.csv")
     returns_df = load_csv_data("data/returns.csv")
     damage_df = load_csv_data("data/damage.csv")
 
-    # Ensure required columns are present
-    for df in [inward_df, outward_df, returns_df, damage_df]:
-        for col in ['Material Name', 'Quantity']:
-            if col not in df.columns:
-                df[col] = 0
+    # Summarize quantities
+    inward_sum = inward_df.groupby("Material Name")["Quantity"].sum()
+    outward_sum = outward_df.groupby("Material Name")["Quantity"].sum()
+    returns_sum = returns_df.groupby("Material Name")["Quantity"].sum()
+    damage_sum = damage_df.groupby("Material Name")["Quantity"].sum()
 
-    # Group and sum by material
-    inward_summary = inward_df.groupby("Material Name")["Quantity"].sum()
-    outward_summary = outward_df.groupby("Material Name")["Quantity"].sum()
-    returns_summary = returns_df.groupby("Material Name")["Quantity"].sum()
-    damage_summary = damage_df.groupby("Material Name")["Quantity"].sum()
+    # Union of all materials across registers
+    all_materials = set(inward_sum.index) | set(outward_sum.index) | set(returns_sum.index) | set(damage_sum.index)
 
-    # Create stock summary DataFrame
-    all_materials = set(inward_summary.index) | set(outward_summary.index) | set(returns_summary.index) | set(damage_summary.index)
-
-    summary_data = []
+    summary_list = []
     for material in all_materials:
-        inward_qty = inward_summary.get(material, 0)
-        outward_qty = outward_summary.get(material, 0)
-        return_qty = returns_summary.get(material, 0)
-        damage_qty = damage_summary.get(material, 0)
+        inward = inward_sum.get(material, 0)
+        outward = outward_sum.get(material, 0)
+        returns = returns_sum.get(material, 0)
+        damage = damage_sum.get(material, 0)
 
-        net_stock = inward_qty - outward_qty - damage_qty + return_qty
+        available_stock = inward - outward - damage + returns
 
-        summary_data.append({
+        summary_list.append({
             "Material Name": material,
-            "Inward Qty": inward_qty,
-            "Outward Qty": outward_qty,
-            "Damage Qty": damage_qty,
-            "Return Qty": return_qty,
-            "Available Stock": net_stock
+            "Inward Qty": inward,
+            "Outward Qty": outward,
+            "Damage Qty": damage,
+            "Return Qty": returns,
+            "Available Stock": available_stock
         })
 
-    summary_df = pd.DataFrame(summary_data)
-    st.dataframe(summary_df.sort_values("Material Name"))
+    summary_df = pd.DataFrame(summary_list)
+
+    if not summary_df.empty and "Material Name" in summary_df.columns:
+        st.dataframe(summary_df.sort_values(by="Material Name"))
+    else:
+        st.warning("No data available to display stock summary.")
 
 
 
