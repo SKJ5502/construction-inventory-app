@@ -48,7 +48,8 @@ tabs = st.tabs([
     "Material Transfer Register",
     "Scrap Register",
     "Rate Contract Register",
-    "PO Register"
+    "PO Register",
+    "Reports Dashboard"
 ])
 
 # === Vendor Management Tab ===
@@ -860,6 +861,64 @@ with tabs[13]:
             po_df = pd.concat([po_df, pd.DataFrame([new_po])], ignore_index=True)
             po_df.to_csv(po_file, index=False)
             st.success("PO entry saved successfully.")
+
+with tabs[14]:
+    st.header("📈 Reports Dashboard")
+
+    # Load Data
+    inward_file = os.path.join(DATA_PATH, "inward_register.csv")
+    if os.path.exists(inward_file):
+        inward_df = pd.read_csv(inward_file)
+    else:
+        inward_df = pd.DataFrame(columns=[
+            "Date", "Vendor Name", "Material", "Unit", "Quantity",
+            "Rate", "Amount", "Expiry Date", "Photographic Record",
+            "Delivery Challan", "PO Number", "Condition", "Vehicle Details",
+            "Received By", "Quality Check Status", "Storage Location",
+            "Remarks", "Authorization"
+        ])
+
+    # Load Vendor Data
+    vendor_file = os.path.join(DATA_PATH, "vendor.csv")
+    if os.path.exists(vendor_file):
+        vendor_df = pd.read_csv(vendor_file)
+    else:
+        vendor_df = pd.DataFrame(columns=["Vendor Name", "Contact Person", "Phone", "Email", "Address", "GSTIN"])
+
+    # --- KPI Metrics ---
+    st.subheader("🔢 Key Metrics")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Total Vendors", len(vendor_df))
+    with col2:
+        st.metric("Total Materials Received", inward_df["Quantity"].sum() if not inward_df.empty else 0)
+    with col3:
+        st.metric("Total Value", f"₹ {inward_df['Amount'].sum():,.2f}" if not inward_df.empty else "₹ 0")
+
+    # --- Material-wise Summary ---
+    st.subheader("📦 Material Summary")
+    if not inward_df.empty and "Material" in inward_df.columns:
+        summary_df = inward_df.groupby("Material").agg({
+            "Quantity": "sum",
+            "Amount": "sum"
+        }).reset_index()
+        summary_df.columns = ["Material", "Total Quantity", "Total Amount"]
+        st.dataframe(summary_df.sort_values("Total Quantity", ascending=False), use_container_width=True)
+    else:
+        st.warning("No inward data available to display summary.")
+
+    # --- Vendor-wise Summary ---
+    st.subheader("🏗 Vendor Supply Summary")
+    if not inward_df.empty and "Vendor Name" in inward_df.columns:
+        vendor_summary_df = inward_df.groupby("Vendor Name").agg({
+            "Quantity": "sum",
+            "Amount": "sum"
+        }).reset_index()
+        vendor_summary_df.columns = ["Vendor", "Total Quantity Supplied", "Total Amount"]
+        st.dataframe(vendor_summary_df.sort_values("Total Amount", ascending=False), use_container_width=True)
+    else:
+        st.info("No data available for vendor summary.")
+
 
 
 
