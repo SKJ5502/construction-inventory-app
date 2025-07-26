@@ -11,7 +11,6 @@ sheet = connect_sheet("Construction Inventory")
 
 st.title("🏗️ Construction Site Inventory Management System")
 
-# === Tabs at the TOP ===
 tabs = st.tabs([
     "Vendor Management",
     "Inward Register",
@@ -30,6 +29,7 @@ tabs = st.tabs([
     "Reports Dashboard",
     "User Management"
 ])
+
 
 # ✅ Make sure the folder exists
 FOLDER_PATH = 'data'
