@@ -1,49 +1,30 @@
 import streamlit as st
 import pandas as pd
-import datetime
-import math
-from helpers.gsheet_utils import connect_sheet
-import os
-from datetime import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
-# Utility: Load CSV safely
-def load_data(file_path):
-    if os.path.exists(file_path):
-        try:
-            return pd.read_csv(file_path)
-        except Exception as e:
-            st.error(f"Error reading {file_path}: {e}")
-            return pd.DataFrame()
-    else:
-        return pd.DataFrame()
+# === Set Google Sheet Details ===
+SHEET_NAME = "Construction Inventory"
 
+# === Function to connect to specific worksheet ===
+def connect_to_gsheet(sheet_name, worksheet_name):
+    scope = [
+        "https://spreadsheets.google.com/feeds",
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/drive.file"
+    ]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+    client = gspread.authorize(creds)
+    worksheet = client.open(sheet_name).worksheet(worksheet_name)
+    data = worksheet.get_all_records()
+    return pd.DataFrame(data)
 
-# Create data folder if not exists
-os.makedirs("data", exist_ok=True)
-DATA_PATH = "data/vendors.csv"
-
-
-
-# === Load Vendor Data ===
-vendor_file = "data/vendor.csv"
-if os.path.exists(vendor_file):
-    vendor_df = pd.read_csv(vendor_file)
-else:
-    vendor_df = pd.DataFrame(columns=["Vendor ID", "Vendor Name", "Contact Person", "Phone", "Email", "Address", "GST Number"])
-
-# === Dropdown Options ===
+# === Material Options for Dropdowns ===
 material_options = ["Cement", "Sand", "Steel", "Tiles", "Paint", "Bricks", "Aggregate", "Plywood"]
 unit_options = ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters", "Kilograms", "Meters"]
 
-# === UI Tabs ===
-tabs = st.tabs([
-    "Vendor Management", "Inward Register", "Outward Register", "Returns Register", "Damage / Loss",
-    "Reconciliation", "Daily Closing", "Stock Summary", "BOQ Mapping", "Indent Register",
-    "Material Transfer", "Scrap Register", "Rate Contract"
-])
-
-
-# === Tabs at the TOP ===
+# === Create Tabs ===
 tabs = st.tabs([
     "Vendor Management",
     "Inward Register",
@@ -62,21 +43,25 @@ tabs = st.tabs([
     "Reports Dashboard"
 ])
 
+
 # === Vendor Management Tab ===
 with tabs[0]:
     st.header("📋 Vendor Management")
 
-    # === Load or initialize data ===
-    if not os.path.exists(DATA_PATH):
+    # === Load Google Sheet Data ===
+    SHEET_NAME = "Construction Inventory"
+    WORKSHEET_NAME = "Vendor Master"
+
+    try:
+        df = connect_to_gsheet(SHEET_NAME, WORKSHEET_NAME)
+    except Exception as e:
+        st.error(f"Error loading Google Sheet: {e}")
         df = pd.DataFrame(columns=[
             "Vendor Name", "Contact Person", "Contact Number", "Email ID",
             "Address", "GST Number", "Bank Details", "Approved Materials",
             "Rate Agreement", "Payment Terms", "Performance Rating",
             "Status", "Remarks", "Document URL"
         ])
-        df.to_csv(DATA_PATH, index=False)
-    else:
-        df = pd.read_csv(DATA_PATH)
 
     # === Add / Update Vendor Form ===
     with st.form("add_vendor_form"):
@@ -130,6 +115,7 @@ with tabs[0]:
                 "Document URL": doc_url
             }
 
+            # Update or Append
             if vendor_name in df['Vendor Name'].values:
                 df.loc[df['Vendor Name'] == vendor_name] = new_row
                 st.success(f"Vendor '{vendor_name}' updated.")
@@ -137,7 +123,19 @@ with tabs[0]:
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 st.success(f"Vendor '{vendor_name}' added.")
 
-            df.to_csv(DATA_PATH, index=False)
+            # Write back to Google Sheet
+            try:
+                client = gspread.authorize(ServiceAccountCredentials.from_json_keyfile_name("creds.json", [
+                    "https://spreadsheets.google.com/feeds",
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive",
+                    "https://www.googleapis.com/auth/drive.file"
+                ]))
+                worksheet = client.open(SHEET_NAME).worksheet(WORKSHEET_NAME)
+                worksheet.clear()
+                worksheet.update([df.columns.values.tolist()] + df.values.tolist())
+            except Exception as e:
+                st.error(f"Failed to write to Google Sheet: {e}")
 
     # === Vendor Master Table ===
     st.subheader("📌 Vendor Master List")
@@ -145,6 +143,7 @@ with tabs[0]:
 
     # === Export ===
     st.download_button("⬇️ Download Vendor Master", data=df.to_csv(index=False), file_name="vendors.csv", mime="text/csv")
+
 
 # === Inward Register ===
 with tabs[1]:
