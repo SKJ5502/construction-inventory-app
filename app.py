@@ -25,7 +25,8 @@ tabs = st.tabs([
     "Daily Closing",
     "Stock Summary",
     "BOQ Mapping",
-    "Indent Register"
+    "Indent Register",
+    "Material Transfer Register"
 ])
 
 # === Vendor Management Tab ===
@@ -633,6 +634,60 @@ with tabs[9]:  # 10th tab (index starts at 0)
                 indent_df.to_csv(indent_file, index=False)
                 st.success(f"Indent {indent_id} submitted successfully.")
                 st.experimental_rerun()
+
+# === Tab 11: Material Transfer Register ===
+with tabs[10]:  # 11th tab (index starts at 0)
+    st.header("🔄 Material Transfer Register")
+
+    transfer_file = "data/material_transfer.csv"
+
+    # Load or initialize transfer register
+    if os.path.exists(transfer_file):
+        transfer_df = pd.read_csv(transfer_file)
+    else:
+        transfer_df = pd.DataFrame(columns=[
+            "Transfer ID", "Date & Time", "From Location", "To Location",
+            "Material Name", "Unit", "Quantity", "Transferred By",
+            "Approved By", "Vehicle No.", "Remarks"
+        ])
+
+    st.dataframe(transfer_df)
+
+    with st.expander("➕ Log New Transfer"):
+        with st.form("transfer_form"):
+            transfer_id = f"MT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            from_loc = st.text_input("From Location")
+            to_loc = st.text_input("To Location")
+            material = st.selectbox("Material Name", material_options)
+            unit = st.selectbox("Unit", unit_options)
+            quantity = st.number_input("Quantity", min_value=0.0, step=1.0)
+            transferred_by = st.text_input("Transferred By")
+            approved_by = st.text_input("Approved By")
+            vehicle_no = st.text_input("Vehicle Number")
+            remarks = st.text_area("Remarks")
+
+            submitted = st.form_submit_button("Submit Transfer")
+
+            if submitted:
+                new_transfer = {
+                    "Transfer ID": transfer_id,
+                    "Date & Time": date_time,
+                    "From Location": from_loc,
+                    "To Location": to_loc,
+                    "Material Name": material,
+                    "Unit": unit,
+                    "Quantity": quantity,
+                    "Transferred By": transferred_by,
+                    "Approved By": approved_by,
+                    "Vehicle No.": vehicle_no,
+                    "Remarks": remarks
+                }
+                transfer_df = pd.concat([transfer_df, pd.DataFrame([new_transfer])], ignore_index=True)
+                transfer_df.to_csv(transfer_file, index=False)
+                st.success(f"Transfer {transfer_id} recorded successfully.")
+                st.experimental_rerun()
+
 
 
 
