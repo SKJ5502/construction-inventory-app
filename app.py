@@ -205,6 +205,75 @@ with tabs[1]:
 
     st.download_button("⬇️ Download Inward Register", data=inward_df.to_csv(index=False), file_name="inward_register.csv", mime="text/csv")
 
+# === Outward Register ===
+with tabs[2]:
+    st.header("📤 Outward Register")
+
+    try:
+        worksheet = client.open(SHEET_NAME).worksheet("Outward Register")
+        outward_df = pd.DataFrame(worksheet.get_all_records())
+    except Exception as e:
+        st.error(f"Error loading Outward Register: {e}")
+        outward_df = pd.DataFrame(columns=[
+            "Date", "Material Name", "Quantity Issued", "Unit", "Issued To",
+            "Purpose", "Authorized By", "Remarks", "Photographic Record"
+        ])
+
+    with st.form("outward_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", value=datetime.today())
+            material_name = st.selectbox("Material Name", [
+                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
+            quantity = st.number_input("Quantity Issued", min_value=0.0)
+            unit = st.selectbox("Unit", [
+                "Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+            issued_to = st.text_input("Issued To")
+
+        with col2:
+            purpose = st.text_input("Purpose of Issue")
+            authorized_by = st.text_input("Authorized By")
+            remarks = st.text_area("Remarks")
+            photo = st.file_uploader("Upload Photo (Optional)", type=["jpg", "jpeg", "png"])
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            photo_path = ""
+            if photo:
+                photo_path = os.path.join("data", photo.name)
+                os.makedirs("data", exist_ok=True)
+                with open(photo_path, "wb") as f:
+                    f.write(photo.read())
+
+            new_entry = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material Name": material_name,
+                "Quantity Issued": quantity,
+                "Unit": unit,
+                "Issued To": issued_to,
+                "Purpose": purpose,
+                "Authorized By": authorized_by,
+                "Remarks": remarks,
+                "Photographic Record": photo_path
+            }
+
+            try:
+                worksheet.append_row(list(new_entry.values()))
+                st.success("✅ Outward entry recorded!")
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to record entry: {e}")
+
+    st.subheader("📄 Outward Register Entries")
+    if not outward_df.empty:
+        st.dataframe(outward_df)
+        st.download_button("⬇️ Download Outward Register", outward_df.to_csv(index=False), "outward_register.csv", "text/csv")
+    else:
+        st.info("No outward entries found.")
+
+
 
 
 
