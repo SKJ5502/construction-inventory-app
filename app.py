@@ -138,6 +138,73 @@ with tabs[0]:
     # === Export CSV ===
     st.download_button("⬇️ Download Vendor Master", data=df.to_csv(index=False), file_name="vendors.csv", mime="text/csv")
 
+# === Inward Register Tab ===
+with tabs[1]:
+    st.header("📦 Inward Register")
+
+    WORKSHEET_NAME = "Inward Register"
+
+    try:
+        inward_df = connect_to_gsheet(SHEET_NAME, WORKSHEET_NAME)
+    except Exception as e:
+        st.error(f"Error loading Google Sheet: {e}")
+        inward_df = pd.DataFrame(columns=[
+            "Date", "Material", "Vendor Name", "Quantity", "Unit", "Rate per Unit",
+            "Amount", "Invoice Number", "Received By", "Remarks", "Expiry Date"
+        ])
+
+    with st.form("inward_form"):
+        st.subheader("➕ Add Inward Entry")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", datetime.now().date())
+            material = st.selectbox("Material", material_options)
+            vendor_name = st.selectbox("Vendor Name", df["Vendor Name"].unique() if not df.empty else [])
+            quantity = st.number_input("Quantity", min_value=0.0, format="%.2f")
+            unit = st.selectbox("Unit", unit_options)
+            rate = st.number_input("Rate per Unit", min_value=0.0, format="%.2f")
+
+        with col2:
+            invoice_number = st.text_input("Invoice Number")
+            received_by = st.text_input("Received By")
+            remarks = st.text_area("Remarks")
+            expiry_date = st.date_input("Expiry Date", min_value=datetime.now().date())
+
+        submitted = st.form_submit_button("Save Inward Entry")
+
+        if submitted:
+            amount = quantity * rate
+            new_entry = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material": material,
+                "Vendor Name": vendor_name,
+                "Quantity": quantity,
+                "Unit": unit,
+                "Rate per Unit": rate,
+                "Amount": amount,
+                "Invoice Number": invoice_number,
+                "Received By": received_by,
+                "Remarks": remarks,
+                "Expiry Date": expiry_date.strftime("%Y-%m-%d")
+            }
+
+            inward_df = pd.concat([inward_df, pd.DataFrame([new_entry])], ignore_index=True)
+
+            try:
+                worksheet = client.open(SHEET_NAME).worksheet(WORKSHEET_NAME)
+                worksheet.clear()
+                worksheet.update([inward_df.columns.values.tolist()] + inward_df.values.tolist())
+                st.success("Inward entry added successfully.")
+            except Exception as e:
+                st.error(f"Failed to write to Google Sheet: {e}")
+
+    st.subheader("📋 Inward Register Entries")
+    st.dataframe(inward_df)
+
+    st.download_button("⬇️ Download Inward Register", data=inward_df.to_csv(index=False), file_name="inward_register.csv", mime="text/csv")
+
 
 
 
