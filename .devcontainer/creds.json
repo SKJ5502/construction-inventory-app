@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "silicon-bivouac-467110-e1",
+  "private_key_id": "63f92175071e344d1fe7fbee2e18f04e5777f6bd",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCez+ZJBgCvkfC5\nlexR7o3n+VsTcvOm9ngj9a2LgvcKewyL4F7i8gnh4gxL/UIbwuonAFPcrSpoo+Fd\ndNPoxdW7nz6qhD7JoxOLhfHcd6OXStLF6rQRpGQL92IqoRMgCC/i2qaxPBvrbvMc\nqIrrzPIuuP6T5VHLE9iR1qdYvEj5BMDtkF8BJ/LZOHa0mxhjnoazpiOoqquIgrCM\nThft1a1vwBrNe+vzxwvYC0yM2h0dcypxNvkf31llES2pXwlEpLqh4Ll3O+ySswm+\nSWb//hp/8v5+NRf/CUIQ9xSazKrUmdzIIlu027EK1QLNsaPoPRQttavvif/n3Oeu\nOT2RHoUZAgMBAAECggEAC7WIZRnsMwWvmf9TzTapf9ECxgxTqpvBf+U9RmwBiuRH\nqIiCdnkiAWWJQpEJrsJQQU/k3wBlgBGVLC7Q8PilKZA0Lp5RgsxjRIY7ruWjSiRa\nJf2ICUT1m2xB8KKvpkz0OuWkJK0p4dHsWtCSbZBOyuMY4g6mWTK9ZQNOk1xOhQ2W\n5IGhxcPJG/eCf2ErTeDfgVrdFYZCL4FRKieZDo/zydWfSSD2qLjevUTKrPCGXfl1\nMMh4iu5+lZmPoywXu15F1rKigdJeM+9KN1opYFrthnysjZbvG1OOPW+EdLVuypRb\n7s9vqyIqZHCsTuDrBJeuBl4LLtGtwdsHXbz3C3yQAQKBgQDVKbAi028o7PVfjLe8\n9Ly8SdacYOkjF8cQ+FSY6+mGJI7W2eMgBYIIIBk5kos8IYMWF8m0pOJ7FNpeo+6E\nshaXyCUtOhf6tUDXA48TP2S2IWgOvcPsWkshNYfOr7eQ//Jo1fx6WLt21uQ3Rvzn\nTrUgjGx+C/gg2A2PEBkI+IOjsQKBgQC+uhmLeAX8zARxfihNEq/qgdgWhJysldho\nt/XvbEDMEr8xXmRAZdFVnlP7/6YD0ZAfrJ+iZJNAbXOQd0FRUPcvTWqHw6ngk9Sg\nk4Cla5paH0Yc+5hWwWw+eTjr1w/UUfG0M6ozBmmu1UL7BShYSAK6F1Jr75qHkDEw\nT+jaS0ZZ6QKBgFKa7iQA1cIBWfFmQcna+czpvF4rfA1aaI1d/sKoIX4Xarc+BrNh\nDwwBDGVwMb7iqb8FBuiXQSE7aohkdMk9jl3RdP661ZIVbYQlX+uwlGG0PnP//A36\ny8SZzwA8viFV3mXcDxSGkFc0XYpCWz10FeMAKAcMsmJf95kqPtloHPNxAoGAPO8j\n/iUIdK2RtdjCc21G+rslGHyhuZneHAa58hY51Xkf0FwB13kwGhSNbHNOzOWFEDmM\nfst3KBxP0ZXoLlyZvGkVYe6nNXLFec/mR/NKywQ22EehcgY12PfNsbtx+Tl86T+g\nXtDrrsm/rocFTr8i7+VHlehlDG6K6I5/LE7kWRECgYBtlYsgQ91aZzvVii05qGvL\nzh8PF0UdS7S4zDRQkdyhj9PLtVDdup9bvm9XmMpPMfrIFin4gZuE0t1daw4a7gyG\nwMU0X6C/7UOiGsM7wlxDxhLaJHcWDYvzb81Z32qia7OwPF8aerrumCXI3y7NTsbb\nTlIvgJzITR+nrhV+ZMJgmA==\n-----END PRIVATE KEY-----\n",
+  "client_email": "construction-inventory@silicon-bivouac-467110-e1.iam.gserviceaccount.com",
+  "client_id": "105718613473199593782",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/construction-inventory%40silicon-bivouac-467110-e1.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
