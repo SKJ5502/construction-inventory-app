@@ -17,13 +17,27 @@ scoped_creds = Credentials.from_service_account_info(
 client = gspread.authorize(scoped_creds)
 
 # === Set Google Sheet Details ===
-SHEET_NAME = "Construction Inventory"  # Or use URL: st.secrets["sheet_url"]
+SHEET_NAME = "Construction Inventory"
+VENDOR_SHEET = "Vendor Master"
+# === Function to connect to Google Sheet and load vendor data ===
+def load_vendor_data():
+    try:
+        worksheet = client.open(SHEET_NAME).worksheet(VENDOR_SHEET)
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+        df.columns = df.columns.str.strip()  # Clean headers
+        return worksheet, df
+    except Exception as e:
+        st.error(f"Error loading Vendor Master sheet: {e}")
+        return None, pd.DataFrame()
 
-# === Function to connect to specific worksheet ===
-def connect_to_gsheet(sheet_name, worksheet_name):
-    worksheet = client.open(sheet_name).worksheet(worksheet_name)
-    data = worksheet.get_all_records()
-    return pd.DataFrame(data)
+# === Function to write vendor data back to Google Sheet ===
+def save_vendor_data(worksheet, df):
+    try:
+        worksheet.clear()
+        worksheet.update([df.columns.values.tolist()] + df.fillna("").values.tolist())
+    except Exception as e:
+        st.error(f"Failed to write to Google Sheet: {e}")
 
 # === Material and Unit Options for Dropdowns ===
 material_options = ["Cement", "Sand", "Steel", "Tiles", "Paint", "Bricks", "Aggregate", "Plywood"]
@@ -50,68 +64,56 @@ tabs = st.tabs([
 
 # === Vendor Management Tab ===
 with tabs[0]:
-    st.header("🏢 Vendor Management")
+    st.header("📦 Vendor Management")
 
-    # Connect to Vendor Master worksheet
-    try:
-        sheet = client.open(SHEET_NAME)
-        vendor_ws = sheet.worksheet("Vendor Master")
-        vendor_df = pd.DataFrame(vendor_ws.get_all_records())
-        st.write("Vendor Master Columns:", vendor_df.columns.tolist())
+vendor_ws, vendor_df = load_vendor_data()
 
-    except Exception as e:
-        st.error(f"Error loading Vendor Master sheet: {e}")
-        st.stop()
+# Create columns for input
+with st.form("vendor_form"):
+    col1, col2 = st.columns(2)
+    with col1:
+        name = st.text_input("Vendor Name")
+        material = st.text_input("Material Supplied")
+        contact = st.text_input("Contact Person")
+    with col2:
+        phone = st.text_input("Phone Number")
+        email = st.text_input("Email")
+        address = st.text_area("Address")
 
-    st.subheader("📋 Existing Vendors")
+    submitted = st.form_submit_button("Add Vendor")
+
+    if submitted:
+        if name.strip() == "":
+            st.warning("Vendor Name is required.")
+        else:
+            new_vendor = {
+                "Vendor Name": name.strip(),
+                "Material Supplied": material,
+                "Contact Person": contact,
+                "Phone": phone,
+                "Email": email,
+                "Address": address
+            }
+
+            # Append to DataFrame
+            vendor_df = pd.concat([vendor_df, pd.DataFrame([new_vendor])], ignore_index=True)
+            save_vendor_data(vendor_ws, vendor_df)
+            st.success("Vendor added successfully!")
+
+# === Display Vendor Table ===
+st.subheader("📄 Existing Vendors")
+if not vendor_df.empty:
     st.dataframe(vendor_df)
 
-    st.subheader("➕ Add / Update Vendor")
+    with st.expander("🗑️ Delete Vendor"):
+        delete_name = st.selectbox("Select Vendor to Delete", vendor_df["Vendor Name"].unique())
+        if st.button("Delete Vendor"):
+            vendor_df = vendor_df[vendor_df["Vendor Name"] != delete_name]
+            save_vendor_data(vendor_ws, vendor_df)
+            st.success(f"Vendor '{delete_name}' deleted.")
 
-    with st.form("vendor_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            name = st.text_input("Vendor Name")
-            material = st.text_input("Material Supplied")
-            rate = st.number_input("Rate", min_value=0.0)
-            unit = st.selectbox("Unit", ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
-        with col2:
-            contact = st.text_input("Contact Number")
-            gst = st.text_input("GST Number")
-            address = st.text_area("Address")
-
-        submitted = st.form_submit_button("Submit")
-
-        if submitted:
-            if not name:
-                st.warning("Vendor name is required.")
-            else:
-                new_vendor = {
-                    "Vendor Name": name,
-                    "Material Supplied": material,
-                    "Rate": rate,
-                    "Unit": unit,
-                    "Contact Number": contact,
-                    "GST Number": gst,
-                    "Address": address
-                }
-
-                # Remove existing vendor if duplicate
-                vendor_df = vendor_df[vendor_df["Vendor Name"] != name]
-                vendor_df = pd.concat([vendor_df, pd.DataFrame([new_vendor])], ignore_index=True)
-
-                # 🔧 FIX: Replace NaNs with empty string to avoid JSON serialization errors
-                vendor_df.fillna("", inplace=True)
-
-                try:
-                    sheet.values_update(
-                        "Vendor Master!A1",
-                        params={"valueInputOption": "RAW"},
-                        body={"values": [vendor_df.columns.tolist()] + vendor_df.values.tolist()}
-                    )
-                    st.success("Vendor added/updated successfully!")
-                except Exception as e:
-                    st.error(f"❌ Failed to write to Google Sheet: {e}")
+else:
+    st.info("No vendor data available.")
 
 # === Inward Register Tab ===
 with tabs[1]:
