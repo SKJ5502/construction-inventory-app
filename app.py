@@ -262,7 +262,7 @@ with tabs[2]:
             try:
                 worksheet.append_row(list(new_entry.values()))
                 st.success("✅ Outward entry recorded!")
-                st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"❌ Failed to record entry: {e}")
 
