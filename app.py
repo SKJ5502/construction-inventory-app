@@ -137,75 +137,28 @@ def load_vendor_names():
 with tabs[1]:
     st.header("📥 Inward Register")
 
-    INWARD_SHEET = "Inward Register"
-    inward_headers = [
-        "Date", "Material", "Vendor Name", "Quantity", "Unit",
-        "Rate per Unit", "Amount", "Invoice Number", "Received By", "Remarks", "Expiry Date"
-    ]
+    inward_ws, inward_df = load_worksheet("Inward Register")  # Your helper function
 
-    def load_inward_data():
-        try:
-            sheet = client.open(SHEET_NAME).worksheet(INWARD_SHEET)
-            data = sheet.get_all_records()
-            df = pd.DataFrame(data)
-            df.columns = df.columns.map(str.strip)
-            return sheet, df
-        except Exception as e:
-            st.error(f"Error loading Inward Register: {e}")
-            return None, pd.DataFrame()
-
-    def write_inward_data(new_entry):
-        try:
-            sheet, df = load_inward_data()
-            updated_df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
-            updated_df = updated_df.fillna("")
-            sheet.update([inward_headers] + updated_df.values.tolist())
-            st.success("✅ Inward entry recorded successfully!")
-        except Exception as e:
-            st.error(f"❌ Failed to write to Google Sheet: {e}")
-
-    sheet, inward_df = load_inward_data()
-
-    # Get vendor list from Vendor Master
-    @st.cache_data(ttl=3600)
-    def get_vendor_list():
-        vendor_ws = client.open(SHEET_NAME).worksheet("Vendor Master")
-        vendor_data = vendor_ws.get_all_records()
-        vendor_df = pd.DataFrame(vendor_data)
-        vendor_df.columns = vendor_df.columns.map(str.strip)
-        return vendor_df["Vendor Name"].dropna().astype(str).unique().tolist()
-
-    try:
-        vendor_list = get_vendor_list()
-    except Exception as e:
-        st.warning(f"Could not load vendor list: {e}")
-        vendor_list = []
-
-    # === Form Start ===
     with st.form("inward_form"):
         col1, col2 = st.columns(2)
         with col1:
-            date = st.date_input("Date", value=datetime.today())
+            date = st.date_input("Date", value=datetime.date.today())
             material = st.text_input("Material")
-            vendor_name = st.selectbox("Vendor Name", vendor_list)
+            vendor_name = st.selectbox("Vendor Name", load_vendor_names())
+            quantity = st.number_input("Quantity", min_value=0.0, step=0.01)
+            unit = st.text_input("Unit")
         with col2:
-            quantity = st.number_input("Quantity", min_value=0.0)
-            unit = st.selectbox("Unit", ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
-            rate = st.number_input("Rate per Unit", min_value=0.0)
-
-        col3, col4 = st.columns(2)
-        with col3:
+            rate = st.number_input("Rate per Unit", min_value=0.0, step=0.01)
+            amount = quantity * rate
+            st.markdown(f"**Amount:** ₹ {amount:,.2f}")
             invoice = st.text_input("Invoice Number")
             received_by = st.text_input("Received By")
-        with col4:
-            expiry_date = st.date_input("Expiry Date", value=datetime.today())
             remarks = st.text_area("Remarks")
+            expiry_date = st.date_input("Expiry Date")
 
-        # ✅ SUBMIT BUTTON placed INSIDE the form
-        submitted = st.form_submit_button("Submit")
+        submitted = st.form_submit_button("Submit Entry")
 
         if submitted:
-            amount = quantity * rate
             new_entry = {
                 "Date": date.strftime("%Y-%m-%d"),
                 "Material": material,
@@ -217,10 +170,13 @@ with tabs[1]:
                 "Invoice Number": invoice,
                 "Received By": received_by,
                 "Remarks": remarks,
-                "Expiry Date": expiry_date.strftime("%Y-%m-%d")
+                "Expiry Date": expiry_date.strftime("%Y-%m-%d"),
             }
-            write_inward_data(new_entry)
-            st.experimental_rerun()
+
+            # Append and save
+            inward_df = pd.concat([inward_df, pd.DataFrame([new_entry])], ignore_index=True)
+            save_worksheet(inward_ws, inward_df)  # Your write function
+            st.success("Inward entry recorded successfully!")
 
     # === Display Table ===
     st.subheader("📄 Inward Register Entries")
