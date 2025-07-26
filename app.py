@@ -118,84 +118,85 @@ if not vendor_df.empty:
 else:
     st.info("No vendor data available.")
 
-# === Inward Register Tab ===
+# === Inward Register ===
 with tabs[1]:
     st.header("📥 Inward Register")
 
-    # === Load Vendor Names ===
-    try:
-        vendor_ws = client.open(SHEET_NAME).worksheet("Vendor Master")
-        vendor_df = pd.DataFrame(vendor_ws.get_all_records())
-        vendor_names = vendor_df["Vendor Name"].dropna().unique().tolist()
-    except Exception as e:
-        st.warning("⚠️ Could not load vendor names from Vendor Master sheet.")
-        vendor_names = []
+    INWARD_SHEET = "Inward Register"
+    inward_headers = [
+        "Date", "Material", "Vendor Name", "Quantity", "Unit",
+        "Rate per Unit", "Amount", "Invoice Number", "Received By", "Remarks", "Expiry Date"
+    ]
 
-    # === Inward Form ===
+    def load_inward_data():
+        try:
+            sheet = client.open(SHEET_NAME).worksheet(INWARD_SHEET)
+            data = sheet.get_all_records()
+            df = pd.DataFrame(data)
+            df.columns = df.columns.map(lambda x: str(x).strip())
+            return sheet, df
+        except Exception as e:
+            st.error(f"Error loading Inward Register: {e}")
+            return None, pd.DataFrame()
+
+    def write_inward_data(new_entry):
+        try:
+            sheet, df = load_inward_data()
+            updated_df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
+            sheet.update([inward_headers] + updated_df.fillna("").values.tolist())
+            st.success("✅ Inward entry recorded successfully!")
+        except Exception as e:
+            st.error(f"❌ Failed to write to Google Sheet: {e}")
+
+    sheet, inward_df = load_inward_data()
+
     with st.form("inward_form"):
         col1, col2 = st.columns(2)
 
         with col1:
             date = st.date_input("Date", value=datetime.today())
-            material_name = st.selectbox("Material Name", [
-                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
-            quantity = st.number_input("Quantity Received", min_value=0.0)
-            unit = st.selectbox("Unit", [
-                "Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
-            vendor_name = st.selectbox("Vendor Name", vendor_names)
+            material = st.text_input("Material")
+            vendor_name = st.selectbox("Vendor Name", df["Vendor Name"].unique() if not df.empty else [])
 
         with col2:
-            bill_number = st.text_input("Bill Number")
-            rate_per_unit = st.number_input("Rate per Unit (Rs)", min_value=0.0)
-            amount = st.number_input("Total Amount (Rs)", min_value=0.0)
-            photo = st.file_uploader("Upload Photo (Optional)", type=["jpg", "jpeg", "png"])
+            quantity = st.number_input("Quantity", min_value=0.0)
+            unit = st.selectbox("Unit", ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+            rate = st.number_input("Rate per Unit", min_value=0.0)
+
+        col3, col4 = st.columns(2)
+
+        with col3:
+            invoice = st.text_input("Invoice Number")
+            received_by = st.text_input("Received By")
+
+        with col4:
+            expiry_date = st.date_input("Expiry Date", value=datetime.today())
             remarks = st.text_area("Remarks")
 
         submitted = st.form_submit_button("Submit")
 
         if submitted:
-            photo_path = ""
-            if photo:
-                os.makedirs("data", exist_ok=True)
-                photo_path = os.path.join("data", photo.name)
-                with open(photo_path, "wb") as f:
-                    f.write(photo.read())
-
+            amount = quantity * rate
             new_entry = {
                 "Date": date.strftime("%Y-%m-%d"),
-                "Material Name": material_name,
-                "Quantity": float(quantity),
-                "Unit": unit,
+                "Material": material,
                 "Vendor Name": vendor_name,
-                "Bill Number": bill_number,
-                "Rate per Unit": float(rate_per_unit),
-                "Amount": float(amount),
-                "Photographic Record": photo_path,
-                "Remarks": remarks
+                "Quantity": quantity,
+                "Unit": unit,
+                "Rate per Unit": rate,
+                "Amount": amount,
+                "Invoice Number": invoice,
+                "Received By": received_by,
+                "Remarks": remarks,
+                "Expiry Date": expiry_date.strftime("%Y-%m-%d")
             }
+            write_inward_data(new_entry)
+            st.experimental_rerun()
 
-            # Convert NaNs to empty strings (JSON-safe)
-            for k, v in new_entry.items():
-                if pd.isna(v):
-                    new_entry[k] = ""
-
-            try:
-                inward_ws = client.open(SHEET_NAME).worksheet("Inward Register")
-                inward_ws.append_row(list(new_entry.values()))
-                st.success("✅ Inward entry recorded successfully!")
-            except Exception as e:
-                st.error(f"❌ Failed to write to Google Sheet: {e}")
-
-    # === Display Inward Register Data ===
     st.subheader("📄 Inward Register Entries")
-    try:
-        inward_ws = client.open(SHEET_NAME).worksheet("Inward Register")
-        inward_data = inward_ws.get_all_records()
-        inward_df = pd.DataFrame(inward_data)
-        st.dataframe(inward_df)
-        st.download_button("⬇️ Download Inward Register", inward_df.to_csv(index=False), "inward_register.csv", "text/csv")
-    except Exception as e:
-        st.error(f"❌ Failed to load Inward Register: {e}")
+    st.dataframe(inward_df)
+
+    st.download_button("⬇️ Download Inward Register", inward_df.to_csv(index=False), "inward_register.csv", "text/csv")
 
 # === Outward Register ===
 with tabs[2]:
