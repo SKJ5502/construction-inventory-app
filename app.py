@@ -27,7 +27,8 @@ tabs = st.tabs([
     "BOQ Mapping",
     "Indent Register",
     "Material Transfer Register",
-    "Scrap Register"
+    "Scrap Register",
+    "Rate Contract Register"
 ])
 
 # === Vendor Management Tab ===
@@ -739,6 +740,53 @@ with tabs[11]:  # 12th tab (index starts at 0)
                 scrap_df.to_csv(scrap_file, index=False)
                 st.success(f"Scrap entry {scrap_id} recorded successfully.")
                 st.experimental_rerun()
+
+# === Tab 13: Rate Contract Register ===
+with tabs[12]:  # 13th tab (index starts at 0)
+    st.header("📃 Rate Contract Register")
+
+    contract_file = "data/rate_contract.csv"
+
+    # Load or initialize rate contract register
+    if os.path.exists(contract_file):
+        contract_df = pd.read_csv(contract_file)
+    else:
+        contract_df = pd.DataFrame(columns=[
+            "Contract ID", "Vendor Name", "Material Name", "Unit", "Rate",
+            "Start Date", "End Date", "Remarks"
+        ])
+
+    st.dataframe(contract_df)
+
+    with st.expander("➕ Add New Rate Contract"):
+        with st.form("rate_contract_form"):
+            contract_id = f"RC-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            vendor_name = st.selectbox("Vendor Name", vendor_df["Vendor Name"].unique() if not vendor_df.empty else [])
+            material_name = st.selectbox("Material Name", material_options)
+            unit = st.selectbox("Unit", unit_options)
+            rate = st.number_input("Rate", min_value=0.0, step=0.1)
+            start_date = st.date_input("Start Date", value=datetime.today())
+            end_date = st.date_input("End Date")
+            remarks = st.text_area("Remarks")
+
+            submitted = st.form_submit_button("Add Rate Contract")
+
+            if submitted:
+                new_contract = {
+                    "Contract ID": contract_id,
+                    "Vendor Name": vendor_name,
+                    "Material Name": material_name,
+                    "Unit": unit,
+                    "Rate": rate,
+                    "Start Date": start_date.strftime("%Y-%m-%d"),
+                    "End Date": end_date.strftime("%Y-%m-%d"),
+                    "Remarks": remarks
+                }
+                contract_df = pd.concat([contract_df, pd.DataFrame([new_contract])], ignore_index=True)
+                contract_df.to_csv(contract_file, index=False)
+                st.success(f"Rate contract {contract_id} added successfully.")
+                st.experimental_rerun()
+
 
 
 
