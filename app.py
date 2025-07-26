@@ -401,7 +401,7 @@ with tabs[4]:
             try:
                 worksheet.append_row(list(new_damage.values()))
                 st.success("✅ Damage/Loss entry recorded!")
-                st.experimental_rerun()
+                st.rerun()
             except Exception as e:
                 st.error(f"❌ Failed to record entry: {e}")
 
