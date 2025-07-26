@@ -344,6 +344,74 @@ with tabs[3]:
     else:
         st.info("No returns recorded yet.")
 
+# === Damage / Loss Register ===
+with tabs[4]:
+    st.header("💥 Damage / Loss Register")
+
+    try:
+        worksheet = client.open(SHEET_NAME).worksheet("Damage Loss Register")
+        damage_df = pd.DataFrame(worksheet.get_all_records())
+    except Exception as e:
+        st.error(f"Error loading Damage Loss Register: {e}")
+        damage_df = pd.DataFrame(columns=[
+            "Date", "Material Name", "Quantity", "Unit", "Reported By",
+            "Location", "Cause", "Photographic Record", "Remarks"
+        ])
+
+    with st.form("damage_loss_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", value=datetime.today())
+            material_name = st.selectbox("Material Name", [
+                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
+            quantity = st.number_input("Quantity Damaged/Lost", min_value=0.0)
+            unit = st.selectbox("Unit", [
+                "Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+            reported_by = st.text_input("Reported By")
+
+        with col2:
+            location = st.text_input("Location of Incident")
+            cause = st.text_area("Cause of Damage or Loss")
+            photo = st.file_uploader("Upload Photo (Optional)", type=["jpg", "jpeg", "png"])
+            remarks = st.text_area("Additional Remarks")
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            photo_path = ""
+            if photo:
+                os.makedirs("data", exist_ok=True)
+                photo_path = os.path.join("data", photo.name)
+                with open(photo_path, "wb") as f:
+                    f.write(photo.read())
+
+            new_damage = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material Name": material_name,
+                "Quantity": quantity,
+                "Unit": unit,
+                "Reported By": reported_by,
+                "Location": location,
+                "Cause": cause,
+                "Photographic Record": photo_path,
+                "Remarks": remarks
+            }
+
+            try:
+                worksheet.append_row(list(new_damage.values()))
+                st.success("✅ Damage/Loss entry recorded!")
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to record entry: {e}")
+
+    st.subheader("📄 Damage / Loss Entries")
+    if not damage_df.empty:
+        st.dataframe(damage_df)
+        st.download_button("⬇️ Download Damage Register", damage_df.to_csv(index=False), "damage_loss_register.csv", "text/csv")
+    else:
+        st.info("No damage or loss entries yet.")
+
 
 
 
