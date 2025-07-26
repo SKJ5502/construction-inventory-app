@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from google.oauth2.service_account import Credentials
 import gspread
+from google.oauth2.service_account import Credentials
 import os
 from datetime import datetime
 
@@ -9,14 +9,15 @@ from datetime import datetime
 service_account_info = st.secrets["gcp_service_account"]
 scoped_creds = Credentials.from_service_account_info(
     service_account_info,
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    scopes=[
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
 )
 client = gspread.authorize(scoped_creds)
 
-client = gspread.authorize(creds)
-
 # === Set Google Sheet Details ===
-SHEET_NAME = "Construction Inventory"
+SHEET_NAME = "Construction Inventory"  # Or use URL: st.secrets["sheet_url"]
 
 # === Function to connect to specific worksheet ===
 def connect_to_gsheet(sheet_name, worksheet_name):
@@ -24,7 +25,7 @@ def connect_to_gsheet(sheet_name, worksheet_name):
     data = worksheet.get_all_records()
     return pd.DataFrame(data)
 
-# === Material Options for Dropdowns ===
+# === Material and Unit Options for Dropdowns ===
 material_options = ["Cement", "Sand", "Steel", "Tiles", "Paint", "Bricks", "Aggregate", "Plywood"]
 unit_options = ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters", "Kilograms", "Meters"]
 
@@ -136,6 +137,7 @@ with tabs[0]:
 
     # === Export CSV ===
     st.download_button("⬇️ Download Vendor Master", data=df.to_csv(index=False), file_name="vendors.csv", mime="text/csv")
+
 
 
 
