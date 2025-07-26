@@ -23,7 +23,8 @@ tabs = st.tabs([
     "Damage / Loss",
     "Reconciliation",
     "Daily Closing",
-    "Stock Summary"
+    "Stock Summary",
+    "BOQ Mapping"
 ])
 
 # === Vendor Management Tab ===
@@ -540,6 +541,47 @@ with tabs[7]:  # 8th tab (index starts at 0)
         st.dataframe(summary_df.sort_values(by="Material Name"))
     else:
         st.warning("No data available to display stock summary.")
+
+# === Tab 9: BOQ Mapping ===
+with tabs[8]:  # 9th tab (index starts at 0)
+    st.header("📋 BOQ Mapping")
+
+    boq_file = "data/boq_mapping.csv"
+
+    # Load or initialize BOQ mapping
+    if os.path.exists(boq_file):
+        boq_df = pd.read_csv(boq_file)
+    else:
+        boq_df = pd.DataFrame(columns=[
+            "Activity", "Material Name", "Unit",
+            "Planned Qty", "Consumed Qty", "Balance Qty"
+        ])
+
+    st.dataframe(boq_df)
+
+    with st.expander("➕ Add New BOQ Mapping Entry"):
+        with st.form("boq_form"):
+            activity = st.text_input("Activity / Task")
+            material = st.selectbox("Material Name", material_options)
+            unit = st.selectbox("Unit", unit_options)
+            planned_qty = st.number_input("Planned Quantity", min_value=0.0, step=1.0)
+            consumed_qty = st.number_input("Consumed Quantity", min_value=0.0, step=1.0)
+            submitted = st.form_submit_button("Add Mapping")
+
+            if submitted:
+                balance_qty = planned_qty - consumed_qty
+                new_entry = {
+                    "Activity": activity,
+                    "Material Name": material,
+                    "Unit": unit,
+                    "Planned Qty": planned_qty,
+                    "Consumed Qty": consumed_qty,
+                    "Balance Qty": balance_qty
+                }
+                boq_df = pd.concat([boq_df, pd.DataFrame([new_entry])], ignore_index=True)
+                boq_df.to_csv(boq_file, index=False)
+                st.success("BOQ Mapping entry added successfully.")
+                st.experimental_rerun()
 
 
 
