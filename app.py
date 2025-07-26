@@ -206,37 +206,38 @@ with tabs[0]:
             # ✅ THIS must be INSIDE the form
             submit = st.form_submit_button("Save Inward Entry")
 
-        # ✅ This is outside the form
-        if submit:
-           photo_url = ""
-           if photo:
-                photo_save_path = os.path.join(FOLDER_PATH, f"inward_{photo.name}")
-                with open(photo_save_path, "wb") as f:
-                    f.write(photo.read())
-                photo_url = photo_save_path
+            # ✅ This is outside the form
+    if submit:
+        photo_url = ""
+        if photo:
+            photo_save_path = os.path.join(FOLDER_PATH, f"inward_{photo.name}")
+            with open(photo_save_path, "wb") as f:
+                f.write(photo.read())
+            photo_url = photo_save_path
 
-            new_inward = {
-                "Date & Time": date_time,
-                "Supplier/Vendor Name": supplier,
-                "Delivery Challan/Invoice Number": dc_number,
-                "Purchase Order Number": po_number,
-                "Material Name": material_name,
-                "Unit of Measurement": unit,
-                "Quantity Received": quantity,
-                "Condition of Material": condition,
-                "Expiry Date": expiry_date,
-                "Vehicle Details": vehicle_details,
-                "Received By": received_by,
-                "Quality Check Status": qc_status,
-                "Photographic Record": photo_url,
-                "Storage Location": storage_location,
-                "Remarks/Notes": remarks,
-                "Authorization": authorization
-            }
+        new_inward = {
+            "Date & Time": date_time,
+            "Supplier/Vendor Name": supplier,
+            "Delivery Challan/Invoice Number": dc_number,
+            "Purchase Order Number": po_number,
+            "Material Name": material_name,
+            "Unit of Measurement": unit,
+            "Quantity Received": quantity,
+            "Condition of Material": condition,
+            "Expiry Date": expiry_date,
+            "Vehicle Details": vehicle_details,
+            "Received By": received_by,
+            "Quality Check Status": qc_status,
+            "Photographic Record": photo_url,
+            "Storage Location": storage_location,
+            "Remarks/Notes": remarks,
+            "Authorization": authorization
+        }
 
-            inward_df = pd.concat([inward_df, pd.DataFrame([new_inward])], ignore_index=True)
-            inward_df.to_csv(inward_file, index=False)
-            st.success("Inward entry saved successfully!")
+        inward_df = pd.concat([inward_df, pd.DataFrame([new_inward])], ignore_index=True)
+        inward_df.to_csv(inward_file, index=False)
+        st.success("Inward entry saved successfully!")
+
 
         st.subheader("📑 Inward Register Data")
         st.dataframe(inward_df)
