@@ -27,6 +27,13 @@ else:
 material_options = ["Cement", "Sand", "Steel", "Tiles", "Paint", "Bricks", "Aggregate", "Plywood"]
 unit_options = ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters", "Kilograms", "Meters"]
 
+# === Set Data Folder Path ===
+DATA_PATH = "data"
+
+# === Ensure Folder Exists ===
+if not os.path.exists(DATA_PATH):
+    os.makedirs(DATA_PATH)
+
 # === Tabs at the TOP ===
 tabs = st.tabs([
     "Vendor Management",
