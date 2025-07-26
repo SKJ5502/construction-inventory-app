@@ -121,6 +121,19 @@ with tabs[0]:
 
 
 # === Inward Register ===
+# Load vendor names from Vendor Master worksheet
+def load_vendor_names():
+    try:
+        ws = client.open(SHEET_NAME).worksheet("Vendor Master")
+        data = ws.get_all_records()
+        df = pd.DataFrame(data)
+        if "Vendor Name" in df.columns:
+            return df["Vendor Name"].dropna().unique().tolist()
+        else:
+            return []
+    except Exception as e:
+        st.error(f"Error loading Vendor Master: {e}")
+        return []
 with tabs[1]:
     st.header("📥 Inward Register")
 
