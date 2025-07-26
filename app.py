@@ -100,3 +100,91 @@ with tabs[0]:
 
     # === Export ===
     st.download_button("⬇️ Download Vendor Master", data=df.to_csv(index=False), file_name="vendors.csv", mime="text/csv")
+
+# === Inward Register ===
+with tabs[1]:
+    st.header("📥 Inward Register")
+
+    # Load existing inward data or create fresh file
+    inward_data_path = "data/inward_register.csv"
+    os.makedirs("data", exist_ok=True)
+
+    if not os.path.exists(inward_data_path):
+        inward_df = pd.DataFrame(columns=[
+            "Date & Time", "Vendor Name", "Invoice Number", "PO Number",
+            "Material Name", "Unit", "Quantity Received", "Condition",
+            "Expiry Date", "Vehicle Details", "Received By",
+            "Quality Check Status", "Photographic Record", "Storage Location",
+            "Remarks", "Authorized By"
+        ])
+        inward_df.to_csv(inward_data_path, index=False)
+    else:
+        inward_df = pd.read_csv(inward_data_path)
+
+    with st.form("inward_form"):
+        st.subheader("➕ Add Inward Entry")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            st.text_input("Date & Time of Receipt", value=current_time, disabled=True, key="timestamp")
+            vendor_name = st.text_input("Vendor Name")
+            invoice_number = st.text_input("Delivery Challan / Invoice Number")
+            po_number = st.text_input("Purchase Order Number")
+            material_options = ["Cement", "Sand", "Steel", "Tiles", "Paint"]
+            material = st.selectbox("Material Name", material_options)
+            unit_options = ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"]
+            unit = st.selectbox("Unit of Measurement (UOM)", unit_options)
+            quantity = st.number_input("Quantity Received", min_value=0.0, format="%.2f")
+            condition = st.text_input("Condition of Material")
+
+        with col2:
+            expiry_date = st.date_input("Expiry Date (optional)", value=None)
+            vehicle_details = st.text_input("Vehicle Details (Truck No., Driver Name)")
+            received_by = st.text_input("Received By")
+            qc_status = st.text_input("Quality Check Status")
+            photo = st.file_uploader("Photographic Record (Upload)", type=["jpg", "jpeg", "png", "pdf"])
+            storage_location = st.text_input("Storage Location")
+            remarks = st.text_area("Remarks / Notes")
+            authorized_by = st.text_input("Authorization (Name / Signature)")
+
+        submitted = st.form_submit_button("Save Inward Entry")
+
+        if submitted:
+            # Save photo file (if uploaded)
+            photo_path = ""
+            if photo:
+                photo_path = os.path.join("data", photo.name)
+                with open(photo_path, "wb") as f:
+                    f.write(photo.read())
+
+            new_inward = {
+                "Date & Time": current_time,
+                "Vendor Name": vendor_name,
+                "Invoice Number": invoice_number,
+                "PO Number": po_number,
+                "Material Name": material,
+                "Unit": unit,
+                "Quantity Received": quantity,
+                "Condition": condition,
+                "Expiry Date": expiry_date if expiry_date else "",
+                "Vehicle Details": vehicle_details,
+                "Received By": received_by,
+                "Quality Check Status": qc_status,
+                "Photographic Record": photo_path,
+                "Storage Location": storage_location,
+                "Remarks": remarks,
+                "Authorized By": authorized_by
+            }
+
+            inward_df = pd.concat([inward_df, pd.DataFrame([new_inward])], ignore_index=True)
+            inward_df.to_csv(inward_data_path, index=False)
+            st.success("Inward entry saved successfully!")
+
+    # Display the existing data
+    st.subheader("📄 Inward Register Entries")
+    st.dataframe(inward_df)
+
+    # Export button
+    st.download_button("⬇️ Download Inward Register", inward_df.to_csv(index=False), "inward_register.csv", "text/csv")
+
