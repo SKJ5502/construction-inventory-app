@@ -273,6 +273,78 @@ with tabs[2]:
     else:
         st.info("No outward entries found.")
 
+# === Returns Register ===
+with tabs[3]:
+    st.header("🔁 Returns Register")
+
+    try:
+        worksheet = client.open(SHEET_NAME).worksheet("Returns Register")
+        returns_df = pd.DataFrame(worksheet.get_all_records())
+    except Exception as e:
+        st.error(f"Error loading Returns Register: {e}")
+        returns_df = pd.DataFrame(columns=[
+            "Date", "Material Name", "Quantity Returned", "Unit",
+            "Returned By", "Reason for Return", "Condition",
+            "Received By", "Photographic Record", "Remarks"
+        ])
+
+    with st.form("returns_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", value=datetime.today())
+            material_name = st.selectbox("Material Name", [
+                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
+            quantity = st.number_input("Quantity Returned", min_value=0.0)
+            unit = st.selectbox("Unit", [
+                "Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+            returned_by = st.text_input("Returned By")
+
+        with col2:
+            reason = st.text_input("Reason for Return")
+            condition = st.text_input("Material Condition")
+            received_by = st.text_input("Received By")
+            photo = st.file_uploader("Upload Photo (Optional)", type=["jpg", "jpeg", "png"])
+            remarks = st.text_area("Remarks")
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            photo_path = ""
+            if photo:
+                os.makedirs("data", exist_ok=True)
+                photo_path = os.path.join("data", photo.name)
+                with open(photo_path, "wb") as f:
+                    f.write(photo.read())
+
+            new_return = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material Name": material_name,
+                "Quantity Returned": quantity,
+                "Unit": unit,
+                "Returned By": returned_by,
+                "Reason for Return": reason,
+                "Condition": condition,
+                "Received By": received_by,
+                "Photographic Record": photo_path,
+                "Remarks": remarks
+            }
+
+            try:
+                worksheet.append_row(list(new_return.values()))
+                st.success("✅ Return entry recorded!")
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to record entry: {e}")
+
+    st.subheader("📄 Returns Register Entries")
+    if not returns_df.empty:
+        st.dataframe(returns_df)
+        st.download_button("⬇️ Download Returns Register", returns_df.to_csv(index=False), "returns_register.csv", "text/csv")
+    else:
+        st.info("No returns recorded yet.")
+
+
 
 
 
