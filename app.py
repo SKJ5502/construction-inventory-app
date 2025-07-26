@@ -24,7 +24,8 @@ tabs = st.tabs([
     "Reconciliation",
     "Daily Closing",
     "Stock Summary",
-    "BOQ Mapping"
+    "BOQ Mapping",
+    "Indent Register"
 ])
 
 # === Vendor Management Tab ===
@@ -582,6 +583,57 @@ with tabs[8]:  # 9th tab (index starts at 0)
                 boq_df.to_csv(boq_file, index=False)
                 st.success("BOQ Mapping entry added successfully.")
                 st.experimental_rerun()
+
+# === Tab 10: Indent Register ===
+with tabs[9]:  # 10th tab (index starts at 0)
+    st.header("📄 Indent Register")
+
+    indent_file = "data/indent_register.csv"
+
+    # Load or initialize indent register
+    if os.path.exists(indent_file):
+        indent_df = pd.read_csv(indent_file)
+    else:
+        indent_df = pd.DataFrame(columns=[
+            "Indent ID", "Date & Time", "Requested By", "Department",
+            "Material Name", "Unit", "Quantity", "Required Date", "Remarks", "Status"
+        ])
+
+    st.dataframe(indent_df)
+
+    with st.expander("➕ Raise New Indent"):
+        with st.form("indent_form"):
+            indent_id = f"IND-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            date_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            requested_by = st.text_input("Requested By")
+            department = st.text_input("Department")
+            material = st.selectbox("Material Name", material_options)
+            unit = st.selectbox("Unit", unit_options)
+            quantity = st.number_input("Quantity", min_value=0.0, step=1.0)
+            required_date = st.date_input("Required Date")
+            remarks = st.text_area("Remarks")
+            status = st.selectbox("Status", ["Pending", "Approved", "Fulfilled"])
+
+            submitted = st.form_submit_button("Submit Indent")
+
+            if submitted:
+                new_indent = {
+                    "Indent ID": indent_id,
+                    "Date & Time": date_time,
+                    "Requested By": requested_by,
+                    "Department": department,
+                    "Material Name": material,
+                    "Unit": unit,
+                    "Quantity": quantity,
+                    "Required Date": required_date,
+                    "Remarks": remarks,
+                    "Status": status
+                }
+                indent_df = pd.concat([indent_df, pd.DataFrame([new_indent])], ignore_index=True)
+                indent_df.to_csv(indent_file, index=False)
+                st.success(f"Indent {indent_id} submitted successfully.")
+                st.experimental_rerun()
+
 
 
 
