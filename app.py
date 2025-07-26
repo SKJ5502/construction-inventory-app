@@ -103,20 +103,20 @@ with st.form("vendor_form"):
             save_vendor_data(vendor_ws, vendor_df)
             st.success("Vendor added successfully!")
 
-# === Display Vendor Table ===
-st.subheader("📄 Existing Vendors")
-if not vendor_df.empty:
-    st.dataframe(vendor_df)
+    # === Display Vendor Table ===
+    st.subheader("📄 Existing Vendors")
+    if not vendor_df.empty:
+        st.dataframe(vendor_df)
 
-    with st.expander("🗑️ Delete Vendor"):
-        delete_name = st.selectbox("Select Vendor to Delete", vendor_df["Vendor Name"].unique())
-        if st.button("Delete Vendor"):
-            vendor_df = vendor_df[vendor_df["Vendor Name"] != delete_name]
-            save_vendor_data(vendor_ws, vendor_df)
-            st.success(f"Vendor '{delete_name}' deleted.")
+        with st.expander("🗑️ Delete Vendor"):
+            delete_name = st.selectbox("Select Vendor to Delete", vendor_df["Vendor Name"].unique())
+            if st.button("Delete Vendor"):
+                vendor_df = vendor_df[vendor_df["Vendor Name"] != delete_name]
+                save_vendor_data(vendor_ws, vendor_df)
+                st.success(f"Vendor '{delete_name}' deleted.")
 
-else:
-    st.info("No vendor data available.")
+    else:
+        st.info("No vendor data available.")
 
 # === Inward Register ===
 with tabs[1]:
