@@ -15,7 +15,10 @@ os.makedirs("data", exist_ok=True)
 DATA_PATH = "data/vendors.csv"
 
 # === Tabs at the TOP ===
-tabs = st.tabs(["📋 Vendor Management"])
+tabs = st.tabs([
+    "Vendor Management",
+    "Inward Register"
+])
 
 # === Vendor Management Tab ===
 with tabs[0]:
