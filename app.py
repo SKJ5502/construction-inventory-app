@@ -133,7 +133,7 @@ with tabs[1]:
             sheet = client.open(SHEET_NAME).worksheet(INWARD_SHEET)
             data = sheet.get_all_records()
             df = pd.DataFrame(data)
-            df.columns = df.columns.map(lambda x: str(x).strip())
+            df.columns = df.columns.map(str.strip)
             return sheet, df
         except Exception as e:
             st.error(f"Error loading Inward Register: {e}")
@@ -143,19 +143,32 @@ with tabs[1]:
         try:
             sheet, df = load_inward_data()
             updated_df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
-            sheet.update([inward_headers] + updated_df.fillna("").values.tolist())
+            updated_df = updated_df.fillna("")
+            sheet.update([inward_headers] + updated_df.values.tolist())
             st.success("✅ Inward entry recorded successfully!")
         except Exception as e:
             st.error(f"❌ Failed to write to Google Sheet: {e}")
 
     sheet, inward_df = load_inward_data()
 
+    # Get vendor list from Vendor Master
+    try:
+        vendor_ws = client.open(SHEET_NAME).worksheet("Vendor Master")
+        vendor_data = vendor_ws.get_all_records()
+        vendor_df = pd.DataFrame(vendor_data)
+        vendor_df.columns = vendor_df.columns.map(str.strip)
+        vendor_list = vendor_df["Vendor Name"].dropna().astype(str).unique().tolist()
+    except Exception as e:
+        st.warning(f"Could not load vendor list: {e}")
+        vendor_list = []
+
+    # === Form Start ===
     with st.form("inward_form"):
         col1, col2 = st.columns(2)
         with col1:
             date = st.date_input("Date", value=datetime.today())
             material = st.text_input("Material")
-            vendor_name = st.selectbox("Vendor Name", df["Vendor Name"].unique() if not df.empty else [])
+            vendor_name = st.selectbox("Vendor Name", vendor_list)
         with col2:
             quantity = st.number_input("Quantity", min_value=0.0)
             unit = st.selectbox("Unit", ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
@@ -169,30 +182,32 @@ with tabs[1]:
             expiry_date = st.date_input("Expiry Date", value=datetime.today())
             remarks = st.text_area("Remarks")
 
-        # ✅ Submit button MUST be inside the form
+        # ✅ SUBMIT BUTTON placed INSIDE the form
         submitted = st.form_submit_button("Submit")
 
-    if submitted:
-        amount = quantity * rate
-        new_entry = {
-            "Date": date.strftime("%Y-%m-%d"),
-            "Material": material,
-            "Vendor Name": vendor_name,
-            "Quantity": quantity,
-            "Unit": unit,
-            "Rate per Unit": rate,
-            "Amount": amount,
-            "Invoice Number": invoice,
-            "Received By": received_by,
-            "Remarks": remarks,
-            "Expiry Date": expiry_date.strftime("%Y-%m-%d")
-        }
-        write_inward_data(new_entry)
-        st.experimental_rerun()
+        if submitted:
+            amount = quantity * rate
+            new_entry = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material": material,
+                "Vendor Name": vendor_name,
+                "Quantity": quantity,
+                "Unit": unit,
+                "Rate per Unit": rate,
+                "Amount": amount,
+                "Invoice Number": invoice,
+                "Received By": received_by,
+                "Remarks": remarks,
+                "Expiry Date": expiry_date.strftime("%Y-%m-%d")
+            }
+            write_inward_data(new_entry)
+            st.experimental_rerun()
 
+    # === Display Table ===
     st.subheader("📄 Inward Register Entries")
     st.dataframe(inward_df)
     st.download_button("⬇️ Download Inward Register", inward_df.to_csv(index=False), "inward_register.csv", "text/csv")
+
 
 
 # === Outward Register ===
