@@ -14,6 +14,12 @@ import os
 os.makedirs("data", exist_ok=True)
 DATA_PATH = "data/vendors.csv"
 
+# === File paths ===
+DATA_PATH = "data"
+VENDOR_CSV = os.path.join(DATA_PATH, "vendor.csv")
+INWARD_CSV = os.path.join(DATA_PATH, "inward.csv")
+OUTWARD_CSV = os.path.join(DATA_PATH, "outward.csv")
+
 # === Load Vendor Data ===
 vendor_file = "data/vendor.csv"
 if os.path.exists(vendor_file):
