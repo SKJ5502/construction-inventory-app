@@ -1,77 +1,49 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.service_account import Credentials
-import os
-from datetime import datetime
+from oauth2client.service_account import ServiceAccountCredentials
+from datetime import date
 
-# === Authenticate using Streamlit secrets ===
-service_account_info = st.secrets["gcp_service_account"]
-scoped_creds = Credentials.from_service_account_info(
-    service_account_info,
-    scopes=[
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-)
-client = gspread.authorize(scoped_creds)
-
-# === Set Google Sheet Details ===
+# ===== Google Sheet Setup =====
 SHEET_NAME = "Construction Inventory"
 VENDOR_SHEET = "Vendor Master"
-# === Function to connect to Google Sheet and load vendor data ===
-def load_vendor_data():
+INWARD_SHEET = "Inward Register"
+
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("creds.json", scope)
+client = gspread.authorize(creds)
+
+# ===== Helper Functions =====
+def load_worksheet(sheet_name):
     try:
-        worksheet = client.open(SHEET_NAME).worksheet(VENDOR_SHEET)
+        worksheet = client.open(SHEET_NAME).worksheet(sheet_name)
         data = worksheet.get_all_records()
         df = pd.DataFrame(data)
-
-        # Force all column names to string before stripping
-        df.columns = df.columns.map(lambda x: str(x).strip())
-
         return worksheet, df
     except Exception as e:
-        st.error(f"Error loading Vendor Master sheet: {e}")
+        st.error(f"Error loading {sheet_name} sheet: {e}")
         return None, pd.DataFrame()
 
-# === Function to write vendor data back to Google Sheet ===
-def save_vendor_data(worksheet, df):
+def save_worksheet(worksheet, df):
     try:
         worksheet.clear()
         worksheet.update([df.columns.values.tolist()] + df.fillna("").values.tolist())
     except Exception as e:
         st.error(f"Failed to write to Google Sheet: {e}")
 
-# === Material and Unit Options for Dropdowns ===
-material_options = ["Cement", "Sand", "Steel", "Tiles", "Paint", "Bricks", "Aggregate", "Plywood"]
-unit_options = ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters", "Kilograms", "Meters"]
+# ===== Streamlit UI =====
+st.set_page_config(page_title="Construction Inventory", layout="wide")
+st.title("🏗️ Construction Inventory Management")
 
-# === Create Tabs ===
-tabs = st.tabs([
-    "Vendor Management",
-    "Inward Register",
-    "Outward Register",
-    "Returns Register",
-    "Damage / Loss",
-    "Reconciliation",
-    "Daily Closing",
-    "Stock Summary",
-    "BOQ Mapping",
-    "Indent Register",
-    "Material Transfer Register",
-    "Scrap Register",
-    "Rate Contract Register",
-    "PO Register",
-    "Reports Dashboard"
-])
+tabs = st.tabs(["Vendor Management", "Inward Register"])
 
-# === Vendor Management Tab ===
+# ===========================
+# ✅ TAB 1: VENDOR MANAGEMENT
+# ===========================
 with tabs[0]:
     st.header("📦 Vendor Management")
+    vendor_ws, vendor_df = load_worksheet(VENDOR_SHEET)
 
-    vendor_ws, vendor_df = load_vendor_data()
-
-    # === Vendor Input Form ===
     with st.form("vendor_form"):
         col1, col2 = st.columns(2)
         with col1:
@@ -97,70 +69,54 @@ with tabs[0]:
                     "Email": email,
                     "Address": address
                 }
-
                 vendor_df = pd.concat([vendor_df, pd.DataFrame([new_vendor])], ignore_index=True)
-                save_vendor_data(vendor_ws, vendor_df)
+                save_worksheet(vendor_ws, vendor_df)
                 st.success("Vendor added successfully!")
+                st.rerun()  # reload to refresh dropdown in Inward Register
 
-    # === Display Vendor Table ===
     st.subheader("📄 Existing Vendors")
     if not vendor_df.empty:
         st.dataframe(vendor_df)
 
         with st.expander("🗑️ Delete Vendor"):
-            with st.form("delete_vendor_form"):
-                delete_name = st.selectbox("Select Vendor to Delete", vendor_df["Vendor Name"].unique())
-                delete_submitted = st.form_submit_button("Delete Vendor")
-
-                if delete_submitted:
-                    vendor_df = vendor_df[vendor_df["Vendor Name"] != delete_name]
-                    save_vendor_data(vendor_ws, vendor_df)
-                    st.success(f"Vendor '{delete_name}' deleted.")
+            delete_name = st.selectbox("Select Vendor to Delete", vendor_df["Vendor Name"].unique())
+            if st.button("Delete Vendor"):
+                vendor_df = vendor_df[vendor_df["Vendor Name"] != delete_name]
+                save_worksheet(vendor_ws, vendor_df)
+                st.success(f"Vendor '{delete_name}' deleted.")
+                st.rerun()
     else:
         st.info("No vendor data available.")
 
-
-# === Inward Register ===
-# Load vendor names from Vendor Master worksheet
-def load_vendor_names():
-    try:
-        ws = client.open(SHEET_NAME).worksheet("Vendor Master")
-        data = ws.get_all_records()
-        df = pd.DataFrame(data)
-        if "Vendor Name" in df.columns:
-            return df["Vendor Name"].dropna().unique().tolist()
-        else:
-            return []
-    except Exception as e:
-        st.error(f"Error loading Vendor Master: {e}")
-        return []
+# ===========================
+# ✅ TAB 2: INWARD REGISTER
+# ===========================
 with tabs[1]:
     st.header("📥 Inward Register")
-
-    inward_ws, inward_df = load_worksheet("Inward Register")  # Your helper function
+    inward_ws, inward_df = load_worksheet(INWARD_SHEET)
+    _, vendor_df = load_worksheet(VENDOR_SHEET)  # Reload vendor list
 
     with st.form("inward_form"):
         col1, col2 = st.columns(2)
         with col1:
-            date = st.date_input("Date", value=datetime.date.today())
+            entry_date = st.date_input("Date", value=date.today())
             material = st.text_input("Material")
-            vendor_name = st.selectbox("Vendor Name", load_vendor_names())
-            quantity = st.number_input("Quantity", min_value=0.0, step=0.01)
-            unit = st.text_input("Unit")
+            vendor_name = st.selectbox("Vendor Name", vendor_df["Vendor Name"].unique() if not vendor_df.empty else [])
+            quantity = st.number_input("Quantity", min_value=0.0, step=0.1)
+            unit = st.text_input("Unit (e.g., bags, tons)")
         with col2:
-            rate = st.number_input("Rate per Unit", min_value=0.0, step=0.01)
-            amount = quantity * rate
-            st.markdown(f"**Amount:** ₹ {amount:,.2f}")
+            rate = st.number_input("Rate per Unit", min_value=0.0, step=0.1)
             invoice = st.text_input("Invoice Number")
             received_by = st.text_input("Received By")
-            remarks = st.text_area("Remarks")
+            remarks = st.text_input("Remarks")
             expiry_date = st.date_input("Expiry Date")
 
-        submitted = st.form_submit_button("Submit Entry")
+        submitted = st.form_submit_button("Add Inward Entry")
 
         if submitted:
+            amount = round(quantity * rate, 2)
             new_entry = {
-                "Date": date.strftime("%Y-%m-%d"),
+                "Date": entry_date.strftime("%Y-%m-%d"),
                 "Material": material,
                 "Vendor Name": vendor_name,
                 "Quantity": quantity,
@@ -170,18 +126,17 @@ with tabs[1]:
                 "Invoice Number": invoice,
                 "Received By": received_by,
                 "Remarks": remarks,
-                "Expiry Date": expiry_date.strftime("%Y-%m-%d"),
+                "Expiry Date": expiry_date.strftime("%Y-%m-%d")
             }
-
-            # Append and save
             inward_df = pd.concat([inward_df, pd.DataFrame([new_entry])], ignore_index=True)
-            save_worksheet(inward_ws, inward_df)  # Your write function
-            st.success("Inward entry recorded successfully!")
+            save_worksheet(inward_ws, inward_df)
+            st.success("Inward entry added successfully!")
 
-    # === Display Table ===
-    st.subheader("📄 Inward Register Entries")
-    st.dataframe(inward_df)
-    st.download_button("⬇️ Download Inward Register", inward_df.to_csv(index=False), "inward_register.csv", "text/csv")
+    st.subheader("📄 Inward Register Records")
+    if not inward_df.empty:
+        st.dataframe(inward_df)
+    else:
+        st.info("No inward entries yet.")
 
 
 
