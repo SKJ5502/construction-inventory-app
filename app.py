@@ -152,51 +152,48 @@ with tabs[1]:
 
     with st.form("inward_form"):
         col1, col2 = st.columns(2)
-
         with col1:
             date = st.date_input("Date", value=datetime.today())
             material = st.text_input("Material")
             vendor_name = st.selectbox("Vendor Name", df["Vendor Name"].unique() if not df.empty else [])
-
         with col2:
             quantity = st.number_input("Quantity", min_value=0.0)
             unit = st.selectbox("Unit", ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
             rate = st.number_input("Rate per Unit", min_value=0.0)
 
         col3, col4 = st.columns(2)
-
         with col3:
             invoice = st.text_input("Invoice Number")
             received_by = st.text_input("Received By")
-
         with col4:
             expiry_date = st.date_input("Expiry Date", value=datetime.today())
             remarks = st.text_area("Remarks")
 
+        # ✅ Submit button MUST be inside the form
         submitted = st.form_submit_button("Submit")
 
-        if submitted:
-            amount = quantity * rate
-            new_entry = {
-                "Date": date.strftime("%Y-%m-%d"),
-                "Material": material,
-                "Vendor Name": vendor_name,
-                "Quantity": quantity,
-                "Unit": unit,
-                "Rate per Unit": rate,
-                "Amount": amount,
-                "Invoice Number": invoice,
-                "Received By": received_by,
-                "Remarks": remarks,
-                "Expiry Date": expiry_date.strftime("%Y-%m-%d")
-            }
-            write_inward_data(new_entry)
-            st.experimental_rerun()
+    if submitted:
+        amount = quantity * rate
+        new_entry = {
+            "Date": date.strftime("%Y-%m-%d"),
+            "Material": material,
+            "Vendor Name": vendor_name,
+            "Quantity": quantity,
+            "Unit": unit,
+            "Rate per Unit": rate,
+            "Amount": amount,
+            "Invoice Number": invoice,
+            "Received By": received_by,
+            "Remarks": remarks,
+            "Expiry Date": expiry_date.strftime("%Y-%m-%d")
+        }
+        write_inward_data(new_entry)
+        st.experimental_rerun()
 
     st.subheader("📄 Inward Register Entries")
     st.dataframe(inward_df)
-
     st.download_button("⬇️ Download Inward Register", inward_df.to_csv(index=False), "inward_register.csv", "text/csv")
+
 
 # === Outward Register ===
 with tabs[2]:
