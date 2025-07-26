@@ -19,7 +19,11 @@ tabs = st.tabs([
     "Vendor Management",
     "Inward Register",
     "Outward Register",
-    "Returns Register"
+    "Returns Register",
+    "Damage / Loss",
+    "Reconciliation",
+    "Daily Closing",
+    "Stock Summary"
 ])
 
 # === Vendor Management Tab ===
@@ -320,6 +324,223 @@ with tabs[3]:
     st.subheader("📄 Returns Register Entries")
     st.dataframe(returns_df)
     st.download_button("⬇️ Download Returns Register", returns_df.to_csv(index=False), "returns_register.csv", "text/csv")
+
+# === Damage / Loss Register ===
+with tabs[4]:
+    st.header("💥 Damage / Loss Register")
+
+    DAMAGE_CSV = "data/damage_loss_register.csv"
+    os.makedirs("data", exist_ok=True)
+
+    if not os.path.exists(DAMAGE_CSV):
+        damage_df = pd.DataFrame(columns=[
+            "Date", "Material Name", "Quantity", "Unit", "Reported By",
+            "Location", "Cause", "Photographic Record", "Remarks"
+        ])
+        damage_df.to_csv(DAMAGE_CSV, index=False)
+
+    damage_df = pd.read_csv(DAMAGE_CSV)
+
+    with st.form("damage_loss_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", value=datetime.today())
+            material_name = st.selectbox("Material Name", [
+                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
+            quantity = st.number_input("Quantity Damaged/Lost", min_value=0.0)
+            unit = st.selectbox("Unit", [
+                "Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+            reported_by = st.text_input("Reported By")
+
+        with col2:
+            location = st.text_input("Location of Incident")
+            cause = st.text_area("Cause of Damage or Loss")
+            photo = st.file_uploader("Upload Photo (Optional)", type=["jpg", "jpeg", "png"])
+            remarks = st.text_area("Additional Remarks")
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            photo_path = ""
+            if photo:
+                photo_path = os.path.join("data", photo.name)
+                with open(photo_path, "wb") as f:
+                    f.write(photo.read())
+
+            new_damage = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material Name": material_name,
+                "Quantity": quantity,
+                "Unit": unit,
+                "Reported By": reported_by,
+                "Location": location,
+                "Cause": cause,
+                "Photographic Record": photo_path,
+                "Remarks": remarks
+            }
+
+            damage_df = pd.concat([damage_df, pd.DataFrame([new_damage])], ignore_index=True)
+            damage_df.to_csv(DAMAGE_CSV, index=False)
+            st.success("Damage/Loss entry recorded!")
+
+    st.subheader("📄 Damage / Loss Entries")
+    st.dataframe(damage_df)
+    st.download_button("⬇️ Download Damage Register", damage_df.to_csv(index=False), "damage_loss_register.csv", "text/csv")
+
+# === Reconciliation ===
+with tabs[5]:
+    st.header("🧾 Material Reconciliation")
+
+    RECONCILIATION_CSV = "data/reconciliation.csv"
+    os.makedirs("data", exist_ok=True)
+
+    if not os.path.exists(RECONCILIATION_CSV):
+        reconciliation_df = pd.DataFrame(columns=[
+            "Date", "Material Name", "Total Received", "Total Issued",
+            "Returned", "Damaged/Lost", "Balance", "Remarks"
+        ])
+        reconciliation_df.to_csv(RECONCILIATION_CSV, index=False)
+
+    reconciliation_df = pd.read_csv(RECONCILIATION_CSV)
+
+    with st.form("reconciliation_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", value=datetime.today())
+            material_name = st.selectbox("Material Name", [
+                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
+            total_received = st.number_input("Total Received", min_value=0.0)
+            total_issued = st.number_input("Total Issued", min_value=0.0)
+
+        with col2:
+            returned = st.number_input("Returned", min_value=0.0)
+            damaged_lost = st.number_input("Damaged/Lost", min_value=0.0)
+            remarks = st.text_area("Remarks (Optional)")
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            balance = total_received - total_issued - damaged_lost + returned
+
+            new_entry = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material Name": material_name,
+                "Total Received": total_received,
+                "Total Issued": total_issued,
+                "Returned": returned,
+                "Damaged/Lost": damaged_lost,
+                "Balance": balance,
+                "Remarks": remarks
+            }
+
+            reconciliation_df = pd.concat([reconciliation_df, pd.DataFrame([new_entry])], ignore_index=True)
+            reconciliation_df.to_csv(RECONCILIATION_CSV, index=False)
+            st.success("Reconciliation entry saved.")
+
+    st.subheader("📋 Reconciliation Entries")
+    st.dataframe(reconciliation_df)
+    st.download_button("⬇️ Download Reconciliation Report", reconciliation_df.to_csv(index=False), "reconciliation.csv", "text/csv")
+
+# === Daily Closing ===
+with tabs[6]:
+    st.header("📅 Daily Closing Summary")
+
+    DAILY_CLOSING_CSV = "data/daily_closing.csv"
+    os.makedirs("data", exist_ok=True)
+
+    if not os.path.exists(DAILY_CLOSING_CSV):
+        closing_df = pd.DataFrame(columns=[
+            "Date", "Opening Stock", "Total Inward", "Total Outward",
+            "Closing Stock", "Remarks"
+        ])
+        closing_df.to_csv(DAILY_CLOSING_CSV, index=False)
+
+    closing_df = pd.read_csv(DAILY_CLOSING_CSV)
+
+    with st.form("daily_closing_form"):
+        date = st.date_input("Date", value=datetime.today())
+        opening_stock = st.number_input("Opening Stock", min_value=0.0)
+        total_inward = st.number_input("Total Inward", min_value=0.0)
+        total_outward = st.number_input("Total Outward", min_value=0.0)
+        remarks = st.text_area("Remarks")
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            closing_stock = opening_stock + total_inward - total_outward
+
+            new_entry = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Opening Stock": opening_stock,
+                "Total Inward": total_inward,
+                "Total Outward": total_outward,
+                "Closing Stock": closing_stock,
+                "Remarks": remarks
+            }
+
+            closing_df = pd.concat([closing_df, pd.DataFrame([new_entry])], ignore_index=True)
+            closing_df.to_csv(DAILY_CLOSING_CSV, index=False)
+            st.success("Daily closing entry saved.")
+
+    st.subheader("📊 Daily Summary")
+    st.dataframe(closing_df)
+    st.download_button("⬇️ Download Daily Closing CSV", closing_df.to_csv(index=False), "daily_closing.csv", "text/csv")
+
+# === Tab 8: Stock Summary ===
+with tabs[7]:  # Index 7 corresponds to 8th tab
+    st.header("📦 Stock Summary")
+
+    # Load all data files
+    def load_csv_data(file_path):
+        try:
+            return pd.read_csv(file_path)
+        except FileNotFoundError:
+            return pd.DataFrame()
+
+    inward_df = load_csv_data("data/inward.csv")
+    outward_df = load_csv_data("data/outward.csv")
+    returns_df = load_csv_data("data/returns.csv")
+    damage_df = load_csv_data("data/damage.csv")
+
+    # Ensure required columns are present
+    for df in [inward_df, outward_df, returns_df, damage_df]:
+        for col in ['Material Name', 'Quantity']:
+            if col not in df.columns:
+                df[col] = 0
+
+    # Group and sum by material
+    inward_summary = inward_df.groupby("Material Name")["Quantity"].sum()
+    outward_summary = outward_df.groupby("Material Name")["Quantity"].sum()
+    returns_summary = returns_df.groupby("Material Name")["Quantity"].sum()
+    damage_summary = damage_df.groupby("Material Name")["Quantity"].sum()
+
+    # Create stock summary DataFrame
+    all_materials = set(inward_summary.index) | set(outward_summary.index) | set(returns_summary.index) | set(damage_summary.index)
+
+    summary_data = []
+    for material in all_materials:
+        inward_qty = inward_summary.get(material, 0)
+        outward_qty = outward_summary.get(material, 0)
+        return_qty = returns_summary.get(material, 0)
+        damage_qty = damage_summary.get(material, 0)
+
+        net_stock = inward_qty - outward_qty - damage_qty + return_qty
+
+        summary_data.append({
+            "Material Name": material,
+            "Inward Qty": inward_qty,
+            "Outward Qty": outward_qty,
+            "Damage Qty": damage_qty,
+            "Return Qty": return_qty,
+            "Available Stock": net_stock
+        })
+
+    summary_df = pd.DataFrame(summary_data)
+    st.dataframe(summary_df.sort_values("Material Name"))
+
+
 
 
 
