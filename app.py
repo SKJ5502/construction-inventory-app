@@ -25,7 +25,10 @@ def load_vendor_data():
         worksheet = client.open(SHEET_NAME).worksheet(VENDOR_SHEET)
         data = worksheet.get_all_records()
         df = pd.DataFrame(data)
-        df.columns = df.columns.str.strip()  # Clean headers
+
+        # Force all column names to string before stripping
+        df.columns = df.columns.map(lambda x: str(x).strip())
+
         return worksheet, df
     except Exception as e:
         st.error(f"Error loading Vendor Master sheet: {e}")
