@@ -18,7 +18,8 @@ DATA_PATH = "data/vendors.csv"
 tabs = st.tabs([
     "Vendor Management",
     "Inward Register",
-    "Outward Register"
+    "Outward Register",
+    "Returns Register"
 ])
 
 # === Vendor Management Tab ===
@@ -254,5 +255,71 @@ with tabs[2]:
     st.subheader("📄 Outward Register Entries")
     st.dataframe(outward_df)
     st.download_button("⬇️ Download Outward Register", outward_df.to_csv(index=False), "outward_register.csv", "text/csv")
+
+# === Returns Register ===
+with tabs[3]:
+    st.header("🔁 Returns Register")
+
+    RETURNS_CSV = "data/returns_register.csv"
+    os.makedirs("data", exist_ok=True)
+
+    if not os.path.exists(RETURNS_CSV):
+        returns_df = pd.DataFrame(columns=[
+            "Date", "Material Name", "Quantity Returned", "Unit",
+            "Returned By", "Reason for Return", "Condition", "Received By", "Photographic Record", "Remarks"
+        ])
+        returns_df.to_csv(RETURNS_CSV, index=False)
+
+    returns_df = pd.read_csv(RETURNS_CSV)
+
+    with st.form("returns_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            date = st.date_input("Date", value=datetime.today())
+            material_name = st.selectbox("Material Name", [
+                "Cement", "Steel", "Sand", "Bricks", "Tiles", "Paint", "Other"])
+            quantity = st.number_input("Quantity Returned", min_value=0.0)
+            unit = st.selectbox("Unit", [
+                "Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
+            returned_by = st.text_input("Returned By")
+
+        with col2:
+            reason = st.text_input("Reason for Return")
+            condition = st.text_input("Material Condition")
+            received_by = st.text_input("Received By")
+            photo = st.file_uploader("Upload Photo (Optional)", type=["jpg", "jpeg", "png"])
+            remarks = st.text_area("Remarks")
+
+        submitted = st.form_submit_button("Submit")
+
+        if submitted:
+            photo_path = ""
+            if photo:
+                photo_path = os.path.join("data", photo.name)
+                with open(photo_path, "wb") as f:
+                    f.write(photo.read())
+
+            new_return = {
+                "Date": date.strftime("%Y-%m-%d"),
+                "Material Name": material_name,
+                "Quantity Returned": quantity,
+                "Unit": unit,
+                "Returned By": returned_by,
+                "Reason for Return": reason,
+                "Condition": condition,
+                "Received By": received_by,
+                "Photographic Record": photo_path,
+                "Remarks": remarks
+            }
+
+            returns_df = pd.concat([returns_df, pd.DataFrame([new_return])], ignore_index=True)
+            returns_df.to_csv(RETURNS_CSV, index=False)
+            st.success("Return entry recorded!")
+
+    st.subheader("📄 Returns Register Entries")
+    st.dataframe(returns_df)
+    st.download_button("⬇️ Download Returns Register", returns_df.to_csv(index=False), "returns_register.csv", "text/csv")
+
 
 
