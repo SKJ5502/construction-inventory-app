@@ -152,12 +152,16 @@ with tabs[1]:
     sheet, inward_df = load_inward_data()
 
     # Get vendor list from Vendor Master
-    try:
+    @st.cache_data(ttl=3600)
+    def get_vendor_list():
         vendor_ws = client.open(SHEET_NAME).worksheet("Vendor Master")
         vendor_data = vendor_ws.get_all_records()
         vendor_df = pd.DataFrame(vendor_data)
         vendor_df.columns = vendor_df.columns.map(str.strip)
-        vendor_list = vendor_df["Vendor Name"].dropna().astype(str).unique().tolist()
+        return vendor_df["Vendor Name"].dropna().astype(str).unique().tolist()
+
+    try:
+        vendor_list = get_vendor_list()
     except Exception as e:
         st.warning(f"Could not load vendor list: {e}")
         vendor_list = []
