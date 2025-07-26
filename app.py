@@ -14,11 +14,7 @@ import os
 os.makedirs("data", exist_ok=True)
 DATA_PATH = "data/vendors.csv"
 
-# === File paths ===
-DATA_PATH = "data"
-VENDOR_CSV = os.path.join(DATA_PATH, "vendor.csv")
-INWARD_CSV = os.path.join(DATA_PATH, "inward.csv")
-OUTWARD_CSV = os.path.join(DATA_PATH, "outward.csv")
+
 
 # === Load Vendor Data ===
 vendor_file = "data/vendor.csv"
@@ -872,8 +868,15 @@ with tabs[13]:
 with tabs[14]:
     st.header("📊 Reports Dashboard")
 
+    # === File paths ===
+    DATA_PATH = "data"
+    VENDOR_CSV = os.path.join(DATA_PATH, "vendor.csv")
+    INWARD_CSV = os.path.join(DATA_PATH, "inward.csv")
+    OUTWARD_CSV = os.path.join(DATA_PATH, "outward.csv")
+
+
     # Load data
-    inward_df = load_data(INWARD_CSV)
+    inward_df = pd.read_csv(INWARD_CSV)
     outward_df = load_data(OUTWARD_CSV)
 
     st.subheader("1. Daily Inward and Outward Summary")
