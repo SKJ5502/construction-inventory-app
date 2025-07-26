@@ -50,93 +50,66 @@ tabs = st.tabs([
 
 # === Vendor Management Tab ===
 with tabs[0]:
-    st.header("📋 Vendor Management")
+    st.header("🏢 Vendor Management")
 
-    WORKSHEET_NAME = "Vendor Master"
-
+    # Connect to Vendor Master worksheet
     try:
-        df = connect_to_gsheet(SHEET_NAME, WORKSHEET_NAME)
+        sheet = client.open(SHEET_NAME)
+        vendor_ws = sheet.worksheet("Vendor Master")
+        vendor_df = pd.DataFrame(vendor_ws.get_all_records())
     except Exception as e:
-        st.error(f"Error loading Google Sheet: {e}")
-        df = pd.DataFrame(columns=[
-            "Vendor Name", "Contact Person", "Contact Number", "Email ID",
-            "Address", "GST Number", "Bank Details", "Approved Materials",
-            "Rate Agreement", "Payment Terms", "Performance Rating",
-            "Status", "Remarks", "Document URL"
-        ])
+        st.error(f"Error loading Vendor Master sheet: {e}")
+        st.stop()
 
-    # === Add / Update Vendor Form ===
-    with st.form("add_vendor_form"):
-        st.subheader("➕ Add / Update Vendor")
+    st.subheader("📋 Existing Vendors")
+    st.dataframe(vendor_df)
 
+    st.subheader("➕ Add / Update Vendor")
+
+    with st.form("vendor_form"):
         col1, col2 = st.columns(2)
-
         with col1:
-            vendor_name = st.text_input("Vendor Name")
-            contact_person = st.text_input("Contact Person")
-            contact_number = st.text_input("Contact Number")
-            email = st.text_input("Email ID")
-            address = st.text_area("Address")
-            gst = st.text_input("GST Number / Tax ID")
-            bank_details = st.text_area("Bank Details")
-
+            name = st.text_input("Vendor Name")
+            material = st.text_input("Material Supplied")
+            rate = st.number_input("Rate", min_value=0.0)
+            unit = st.selectbox("Unit", ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters"])
         with col2:
-            approved_materials = st.multiselect("Approved Materials", material_options)
-            rate_agreement = st.text_area("Rate Agreement")
-            payment_terms = st.text_input("Payment Terms")
-            rating = st.slider("Performance Rating", 0, 5, 3)
-            status = st.selectbox("Status", ["Active", "Inactive"])
-            remarks = st.text_area("Remarks")
-            uploaded_file = st.file_uploader("Upload Document (optional)", type=["pdf", "jpg", "png", "docx"])
+            contact = st.text_input("Contact Number")
+            gst = st.text_input("GST Number")
+            address = st.text_area("Address")
 
-        submitted = st.form_submit_button("Save Vendor")
+        submitted = st.form_submit_button("Submit")
 
         if submitted:
-            os.makedirs("data", exist_ok=True)
-            doc_url = ""
-            if uploaded_file:
-                save_path = os.path.join("data", uploaded_file.name)
-                with open(save_path, "wb") as f:
-                    f.write(uploaded_file.read())
-                doc_url = save_path
-
-            new_row = {
-                "Vendor Name": vendor_name,
-                "Contact Person": contact_person,
-                "Contact Number": contact_number,
-                "Email ID": email,
-                "Address": address,
-                "GST Number": gst,
-                "Bank Details": bank_details,
-                "Approved Materials": ', '.join(approved_materials),
-                "Rate Agreement": rate_agreement,
-                "Payment Terms": payment_terms,
-                "Performance Rating": rating,
-                "Status": status,
-                "Remarks": remarks,
-                "Document URL": doc_url
-            }
-
-            if vendor_name in df['Vendor Name'].values:
-                df.loc[df['Vendor Name'] == vendor_name] = new_row
-                st.success(f"Vendor '{vendor_name}' updated.")
+            if not name:
+                st.warning("Vendor name is required.")
             else:
-                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                st.success(f"Vendor '{vendor_name}' added.")
+                new_vendor = {
+                    "Vendor Name": name,
+                    "Material Supplied": material,
+                    "Rate": rate,
+                    "Unit": unit,
+                    "Contact Number": contact,
+                    "GST Number": gst,
+                    "Address": address
+                }
 
-            try:
-                worksheet = client.open(SHEET_NAME).worksheet(WORKSHEET_NAME)
-                worksheet.clear()
-                worksheet.update([df.columns.values.tolist()] + df.values.tolist())
-            except Exception as e:
-                st.error(f"Failed to write to Google Sheet: {e}")
+                # Remove existing vendor if duplicate
+                vendor_df = vendor_df[vendor_df["Vendor Name"] != name]
+                vendor_df = pd.concat([vendor_df, pd.DataFrame([new_vendor])], ignore_index=True)
 
-    # === Vendor Master Table ===
-    st.subheader("📌 Vendor Master List")
-    st.dataframe(df)
+                # 🔧 FIX: Replace NaNs with empty string to avoid JSON serialization errors
+                vendor_df.fillna("", inplace=True)
 
-    # === Export CSV ===
-    st.download_button("⬇️ Download Vendor Master", data=df.to_csv(index=False), file_name="vendors.csv", mime="text/csv")
+                try:
+                    sheet.values_update(
+                        "Vendor Master!A1",
+                        params={"valueInputOption": "RAW"},
+                        body={"values": [vendor_df.columns.tolist()] + vendor_df.values.tolist()}
+                    )
+                    st.success("Vendor added/updated successfully!")
+                except Exception as e:
+                    st.error(f"❌ Failed to write to Google Sheet: {e}")
 
 # === Inward Register Tab ===
 with tabs[1]:
