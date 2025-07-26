@@ -10,9 +10,22 @@ import streamlit as st
 import pandas as pd
 import os
 
-# Create data folder if not exists
-os.makedirs("data", exist_ok=True)
-DATA_PATH = "data/vendors.csv"
+st.set_page_config(page_title="Construction Site Inventory", layout="wide")
+
+# === Create data folder if not exists ===
+if not os.path.exists("data"):
+    os.makedirs("data")
+
+# === Load Vendor Data ===
+vendor_file = "data/vendor.csv"
+if os.path.exists(vendor_file):
+    vendor_df = pd.read_csv(vendor_file)
+else:
+    vendor_df = pd.DataFrame(columns=["Vendor ID", "Vendor Name", "Contact Person", "Phone", "Email", "Address", "GST Number"])
+
+# === Dropdown Options ===
+material_options = ["Cement", "Sand", "Steel", "Tiles", "Paint", "Bricks", "Aggregate", "Plywood"]
+unit_options = ["Bags", "Tons", "Liters", "Numbers", "Cubic Feet", "Cubic Meters", "Kilograms", "Meters"]
 
 # === Tabs at the TOP ===
 tabs = st.tabs([
