@@ -42,7 +42,7 @@ DATA_PATH = os.path.join(FOLDER_PATH, 'vendors.csv')
     # === Vendor Management ===
 
     # Example for top-level tabs
-    tabs = st.tabs(["Vendor Management"])  # Or include all your tabs here
+tabs = st.tabs(["Vendor Management"])  # Or include all your tabs here
 
     with tabs[0]:
         st.header("📋 Vendor Management")
