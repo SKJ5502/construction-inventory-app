@@ -12,7 +12,8 @@ class GoogleSheetsManager:
         self.credentials = None
         self.client = None
         self.spreadsheet = None
-        self.initialize_connection()
+        self.connected = False
+        self.connected = self.initialize_connection()
     
     def initialize_connection(self):
         """Initialize Google Sheets connection"""
@@ -20,8 +21,12 @@ class GoogleSheetsManager:
             # Get credentials from environment variables
             creds_json = os.getenv("GOOGLE_CREDENTIALS", "{}")
             if creds_json == "{}":
-                print("Google Sheets credentials not found. Please set GOOGLE_CREDENTIALS environment variable.")
+                print("❌ Google Sheets credentials not found. Please set GOOGLE_CREDENTIALS environment variable.")
+                print(f"📊 Looking for spreadsheet ID: {self.spreadsheet_id}")
                 return False
+            
+            print(f"📋 Found credentials, attempting connection...")
+            print(f"📊 Spreadsheet ID: {self.spreadsheet_id}")
             
             creds_dict = json.loads(creds_json)
             
@@ -38,13 +43,18 @@ class GoogleSheetsManager:
             
             print(f"✅ Successfully connected to Google Sheets: {self.spreadsheet.title}")
             return True
+        except json.JSONDecodeError as e:
+            print(f"❌ Invalid JSON in GOOGLE_CREDENTIALS: {str(e)}")
+            return False
         except Exception as e:
-            print(f"Failed to connect to Google Sheets: {str(e)}")
+            print(f"❌ Failed to connect to Google Sheets: {str(e)}")
+            print(f"📋 Credentials type: {type(creds_json)}")
+            print(f"📋 Credentials length: {len(creds_json)}")
             return False
     
     def get_or_create_worksheet(self, sheet_name, headers):
         """Get existing worksheet or create new one with headers"""
-        if not self.spreadsheet:
+        if not self.connected or not self.spreadsheet:
             raise Exception("Not connected to Google Sheets")
             
         try:
@@ -69,7 +79,7 @@ class GoogleSheetsManager:
                 
         except gspread.WorksheetNotFound:
             print(f"Creating new worksheet: {sheet_name}")
-            worksheet = self.spreadsheet.add_worksheet(title=sheet_name, rows="1000", cols="20")
+            worksheet = self.spreadsheet.add_worksheet(title=sheet_name, rows=1000, cols=20)
             worksheet.append_row(headers)
             print(f"Added headers to new worksheet: {headers}")
         return worksheet
@@ -86,11 +96,13 @@ class GoogleSheetsManager:
     def get_vendors(self):
         """Get all vendors"""
         try:
+            if not self.connected:
+                raise Exception("Not connected to Google Sheets")
             headers = ['Vendor Name', 'Material Supplied', 'Contact Person', 'Phone', 'Email', 'Address']
             worksheet = self.get_or_create_worksheet('Vendor Master', headers)
             return self.dataframe_from_worksheet(worksheet)
         except Exception as e:
-            st.error(f"Error fetching vendors: {str(e)}")
+            print(f"Error fetching vendors: {str(e)}")
             return pd.DataFrame()
     
     def add_vendor(self, vendor_data):
@@ -147,11 +159,13 @@ class GoogleSheetsManager:
     def get_inward_entries(self):
         """Get all inward entries"""
         try:
+            if not self.connected:
+                raise Exception("Not connected to Google Sheets")
             headers = ['Date', 'Material', 'Vendor Name', 'Quantity', 'Unit', 'Rate per Unit', 'Amount', 'Invoice Number', 'Received By', 'Remarks', 'Expiry Date']
             worksheet = self.get_or_create_worksheet('Inward Register', headers)
             return self.dataframe_from_worksheet(worksheet)
         except Exception as e:
-            st.error(f"Error fetching inward entries: {str(e)}")
+            print(f"Error fetching inward entries: {str(e)}")
             return pd.DataFrame()
     
     def add_inward_entry(self, inward_data):
@@ -170,11 +184,13 @@ class GoogleSheetsManager:
     def get_outward_entries(self):
         """Get all outward entries"""
         try:
+            if not self.connected:
+                raise Exception("Not connected to Google Sheets")
             headers = ['Date', 'Material', 'Quantity', 'Unit', 'Issued To', 'Purpose', 'Remarks']
             worksheet = self.get_or_create_worksheet('Outward Register', headers)
             return self.dataframe_from_worksheet(worksheet)
         except Exception as e:
-            st.error(f"Error fetching outward entries: {str(e)}")
+            print(f"Error fetching outward entries: {str(e)}")
             return pd.DataFrame()
     
     def add_outward_entry(self, outward_data):
