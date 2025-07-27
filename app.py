@@ -376,7 +376,11 @@ if "Dashboard" in current_page:
                 inward_df['Date'] = pd.to_datetime(inward_df['Date'], errors='coerce')
                 current_month = pd.Timestamp.now().replace(day=1)
                 monthly_data = inward_df[inward_df['Date'] >= current_month]
-                monthly_inward = monthly_data['Amount'].sum() if not monthly_data.empty else 0
+                if not monthly_data.empty:
+                    # Convert to numeric, replacing any non-numeric values with 0
+                    monthly_inward = pd.to_numeric(monthly_data['Amount'], errors='coerce').fillna(0).sum()
+                else:
+                    monthly_inward = 0
             
             col1, col2, col3 = st.columns(3)
             
@@ -829,7 +833,11 @@ elif "Inward Register" in current_page:
                 
                 # Show summary
                 total_entries = len(inward_df)
-                total_amount = inward_df['Amount'].sum() if 'Amount' in inward_df.columns else 0
+                if 'Amount' in inward_df.columns:
+                    # Convert to numeric, replacing any non-numeric values with 0
+                    total_amount = pd.to_numeric(inward_df['Amount'], errors='coerce').fillna(0).sum()
+                else:
+                    total_amount = 0
                 st.info(f"📊 **Total Entries:** {total_entries} | **Total Value:** ₹{total_amount:,.2f}")
             else:
                 st.info("No inward entries found. Add your first entry above.")
