@@ -7,13 +7,24 @@ import json
 # Environment setup for Streamlit Cloud
 def setup_streamlit_environment():
     """Set up environment variables for Streamlit Cloud"""
-    if 'GOOGLE_CREDENTIALS' in st.secrets:
-        # Use Streamlit secrets
-        os.environ['GOOGLE_CREDENTIALS'] = st.secrets['GOOGLE_CREDENTIALS']
-        os.environ['GOOGLE_SPREADSHEET_ID'] = st.secrets['GOOGLE_SPREADSHEET_ID']
-        return True
-    else:
-        st.error("Google Sheets credentials not found in secrets. Please add them in Streamlit Cloud settings.")
+    try:
+        if hasattr(st, 'secrets') and 'GOOGLE_CREDENTIALS' in st.secrets:
+            # Use Streamlit secrets
+            os.environ['GOOGLE_CREDENTIALS'] = st.secrets['GOOGLE_CREDENTIALS']
+            os.environ['GOOGLE_SPREADSHEET_ID'] = st.secrets['GOOGLE_SPREADSHEET_ID']
+            print("✅ Environment variables set from Streamlit secrets!")
+            return True
+        else:
+            # Fallback for local development
+            if os.getenv('GOOGLE_CREDENTIALS') and os.getenv('GOOGLE_SPREADSHEET_ID'):
+                print("✅ Using existing environment variables!")
+                return True
+            else:
+                st.error("Google Sheets credentials not found. Please add them in Streamlit Cloud settings.")
+                st.info("Required secrets: GOOGLE_CREDENTIALS and GOOGLE_SPREADSHEET_ID")
+                return False
+    except Exception as e:
+        st.error(f"Error setting up environment: {str(e)}")
         return False
 
 # Set up environment first
