@@ -254,9 +254,9 @@ if current_page == "📊 Dashboard":
     
     try:
         # Get data for metrics
-        inward_df = sheets_manager.read_data("Inward Register")
-        outward_df = sheets_manager.read_data("Outward Register")
-        vendor_df = sheets_manager.read_data("Vendor Master")
+        inward_df = sheets_manager.get_inward_entries()
+        outward_df = sheets_manager.get_outward_entries()
+        vendor_df = sheets_manager.get_vendors()
         
         # Calculate metrics
         total_materials = len(inward_df) if not inward_df.empty else 0
@@ -455,18 +455,14 @@ elif current_page == "👥 Vendor Management":
                     try:
                         vendor_data = {
                             "Vendor Name": vendor_name,
-                            "Material": material,
-                            "Material Name": material_name,
-                            "Grade": grade,
+                            "Material Supplied": material_name,
                             "Contact Person": contact_person,
                             "Phone": phone,
                             "Email": email,
-                            "GST Number": gst_number,
-                            "Address": address,
-                            "Date Added": format_date(datetime.now())
+                            "Address": address
                         }
                         
-                        success = sheets_manager.append_data("Vendor Master", vendor_data)
+                        success = sheets_manager.add_vendor(vendor_data)
                         if success:
                             st.success(f"✅ Vendor '{vendor_name}' added successfully!")
                             st.balloons()
@@ -479,7 +475,7 @@ elif current_page == "👥 Vendor Management":
         st.markdown("#### Vendor Directory")
         
         try:
-            vendors_df = sheets_manager.read_data("Vendor Master")
+            vendors_df = sheets_manager.get_vendors()
             
             if not vendors_df.empty:
                 # Search and filter
@@ -556,7 +552,7 @@ elif current_page == "📦 Inward Register":
             with col2:
                 # Get vendors for dropdown
                 try:
-                    vendors_df = sheets_manager.read_data("Vendor Master")
+                    vendors_df = sheets_manager.get_vendors()
                     vendor_options = vendors_df['Vendor Name'].tolist() if not vendors_df.empty else ["No vendors found"]
                 except:
                     vendor_options = ["No vendors found"]
@@ -592,22 +588,19 @@ elif current_page == "📦 Inward Register":
                     try:
                         inward_data = {
                             "Date": format_date(entry_date),
-                            "Material Name": material_name,
-                            "Material": material,
-                            "Grade": grade,
-                            "Vendor": vendor,
+                            "Material": material_name,
+                            "Vendor Name": vendor,
                             "Quantity": quantity,
                             "Unit": unit,
-                            "Rate": rate,
+                            "Rate per Unit": rate,
                             "Amount": amount,
                             "Invoice Number": invoice_number,
                             "Received By": received_by,
-                            "Mfg Date": format_date(mfg_date) if mfg_date else "",
-                            "Expiry Date": format_date(expiry_date) if expiry_date else "",
-                            "Remarks": remarks
+                            "Remarks": remarks,
+                            "Expiry Date": format_date(expiry_date) if expiry_date else ""
                         }
                         
-                        success = sheets_manager.append_data("Inward Register", inward_data)
+                        success = sheets_manager.add_inward_entry(inward_data)
                         if success:
                             st.success(f"✅ Inward entry recorded successfully! Amount: ₹{amount:,.2f}")
                             st.balloons()
@@ -620,7 +613,7 @@ elif current_page == "📦 Inward Register":
         st.markdown("#### Inward Records")
         
         try:
-            inward_df = sheets_manager.read_data("Inward Register")
+            inward_df = sheets_manager.get_inward_entries()
             
             if not inward_df.empty:
                 # Filters
